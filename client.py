@@ -9,25 +9,22 @@ class Tile:
         self.image = image
         self.expose = False
 
-
 def load_tiles():
     types = ["one", 'stick', 'bing']
     other_types = ['east', 'south', 'west', 'north', 'central', 'fa', 'whiteboard']
     numbers = [i for i in range(1, 10)]
-    # tiles = [Tile(tp, num, pygame.image.load(f"images/{tile}.png")) for tile in tiles]
+
     tiles = [Tile(tp, num, pygame.image.load(f"images/{tp}{num}.png")) for tp in types for num in numbers]
     tiles += [Tile(tp, 0, pygame.image.load(f"images/{tp}.png")) for tp in other_types]
-    # tiles *= 4
-    adjust_image_size(tiles)
 
-    return tiles
-
-def adjust_image_size(tiles):
-    IMAGE_SIZE = (30, 50)
     for tile in tiles:
-        tile.image = pygame.transform.scale(tile.image, IMAGE_SIZE)
+        tile.image = adjust_image_size(tile.image)
 
     return tiles
+
+def adjust_image_size(image):
+    IMAGE_SIZE = (30, 50)
+    return pygame.transform.scale(image, IMAGE_SIZE)
 
 def init_game():
     
@@ -39,94 +36,56 @@ def init_game():
 
     WHITE = (255, 255, 255)
     screen.fill(WHITE)
+
     return screen
 
-def main():
-
-
-    screen = init_game()
-    clock = pygame.time.Clock()
-    tiles_obj = load_tiles()
-    n = Network()
-    print(f"I am {n.playerId}")
-    # print(n.fetch_game_info())
-    
-    next_player_tile_image = pygame.image.load('images/tile_rightside.png')
-    opposit_player_tile_image = pygame.image.load('images/tile_back.png')
-    last_player_tile_image = pygame.image.load('images/tile_leftside.png')
-    IMAGE_SIZE = (30, 50)
-    next_player_tile_image = pygame.transform.scale(next_player_tile_image, IMAGE_SIZE)
-    opposit_player_tile_image = pygame.transform.scale(opposit_player_tile_image, IMAGE_SIZE)
-    last_player_tile_image = pygame.transform.scale(last_player_tile_image, IMAGE_SIZE)
-
-    run = True
-    while run:
-        # print("run")
-        clock.tick(1)
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                run = False
-
-        player = {'action': f"player{n.playerId} waiting"}
-
-        game_info = n.send(data=player)
-        # print(game_info)
-
-        if game_info['game_running']:
-            player_index = game_info['players'].index(n.playerId)
-            
-            player_seat_direction = game_info['seats'][f"{n.playerId}"]
-            directions = ['east', 'south', 'west', 'north']
-            direction_index = directions.index(player_seat_direction)
-            directions = directions[direction_index:] + directions[:direction_index]
-            next_seat_direction = directions[1]
-            opposit_seat_direction = directions[2]
-            last_seat_direction = directions[3]
-            print(player_seat_direction, next_seat_direction, opposit_seat_direction, last_seat_direction)
-
-            for player, direction in game_info['seats'].items():
-                print(player, direction)
-                if direction == next_seat_direction:
-                    next_player = int(player)
-                elif direction == opposit_seat_direction:
-                    opposit_player = int(player)
-                elif direction == last_seat_direction:
-                    last_player = int(player)
-                else:
-                    print('myself',player, direction)
-                    # raise Exception("not mapping")
-
-
-
-
-            tiles = [obj for obj in tiles_obj for tile in game_info['tiles_of_players'][player_index] if json.loads(tile)['type']==obj.type and json.loads(tile)['number']==obj.number]
-            rest_tiles = [obj for obj in tiles_obj for tile in game_info['rest_tiles'] if json.loads(tile)['type']==obj.type and json.loads(tile)['number']==obj.number]
-            display_myself(screen, tiles)
-            display_hidden_tiles(screen, rest_tiles)
-            disply_next_player(screen, len(game_info['tiles_of_players'][game_info['players'].index(next_player)]), next_player_tile_image)
-            display_oppisit_player(screen, len(game_info['tiles_of_players'][game_info['players'].index(opposit_player)]), opposit_player_tile_image)
-            display_last_player(screen, len(game_info['tiles_of_players'][game_info['players'].index(last_player)]), last_player_tile_image)
-
-
-            
-        refreshScreen()
-
+def load_sides_tiles():
+    next_player_tile_image = adjust_image_size(pygame.image.load('images/tile_rightside.png'))
+    opposit_player_tile_image = adjust_image_size(pygame.image.load('images/tile_back.png'))
+    last_player_tile_image = adjust_image_size(pygame.image.load('images/tile_leftside.png'))
+    hidden_side_tiles = adjust_image_size(pygame.image.load('images/tile_hidden_side.png'))
+    return next_player_tile_image, opposit_player_tile_image, last_player_tile_image, hidden_side_tiles 
 
 def refreshScreen():
     pygame.display.flip()
 
+def get_my_and_hidden_tile_obj(mytiles, hidden_tiles, tiles_obj):
+    return get_my_tile_obj(mytiles, tiles_obj), get_hidden_tile_obj(hidden_tiles, tiles_obj)
 
+def get_my_tile_obj(mytiles, tiles_obj):
+    return [obj for obj in tiles_obj for tile in mytiles if json.loads(tile)['type']==obj.type and json.loads(tile)['number']==obj.number]
 
-def display_hidden_tiles(screen, tiles):
+def get_hidden_tile_obj(hidden_tiles, tiles_obj):
+    return [obj for obj in tiles_obj for tile in hidden_tiles if json.loads(tile)['type']==obj.type and json.loads(tile)['number']==obj.number]
+
+def get_players_seat(my_direction, seats):
+    directions = ['east', 'south', 'west', 'north']
+    direction_index = directions.index(my_direction)
+    directions_start_from_myself = directions[direction_index:] + directions[:direction_index]
+    next_seat_direction = directions_start_from_myself[1]
+    opposit_seat_direction = directions_start_from_myself[2]
+    last_seat_direction = directions_start_from_myself[3]
+
+    for player, direction in seats.items():
+        if direction == next_seat_direction:
+            next_player = int(player)
+        elif direction == opposit_seat_direction:
+            opposit_player = int(player)
+        elif direction == last_seat_direction:
+            last_player = int(player)
+    
+    return next_player, opposit_player, last_player
+
+def display_hidden_tiles(screen, len_tiles, image):
     newline = 3
     weight = 100
 
-    for i, tile in enumerate(tiles):
+    for i in range(len_tiles):
         if i%16==0:
             newline +=1
             weight = 100
         weight += 30
-        screen.blit(tile.image, (weight, newline*50))
+        screen.blit(image, (weight, newline*50))
 
 def display_myself(screen, tiles):
     weight = 130
@@ -150,6 +109,40 @@ def display_last_player(screen, len_tiles, image):
         height = 90 + i*30
         screen.blit(image, (30, height))
 
+def main():
+    screen = init_game()
+    clock = pygame.time.Clock()
+    tiles_obj = load_tiles()
+
+    n = Network()
+    print(f"I am {n.playerId}")
+    
+    next_player_tile_image, opposit_player_tile_image, last_player_tile_image, hidden_tile_image = load_sides_tiles()
+
+    run = True
+    while run:
+        clock.tick(1)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                run = False
+
+        player = {'action': f"player{n.playerId} waiting"}
+        game_info = n.send(data=player)
+
+        if game_info['game_running']:
+            player_index = game_info['players'].index(n.playerId)
+
+            next_player, opposit_player, last_player = get_players_seat(game_info['seats'][f"{n.playerId}"], game_info['seats'])
+
+            my_tiles, hidden_tiles = get_my_and_hidden_tile_obj(game_info['tiles_of_players'][player_index], game_info['rest_tiles'], tiles_obj)
+     
+            display_myself(screen, my_tiles)
+            display_hidden_tiles(screen, len(hidden_tiles), hidden_tile_image)
+            disply_next_player(screen, len(game_info['tiles_of_players'][game_info['players'].index(next_player)]), next_player_tile_image)
+            display_oppisit_player(screen, len(game_info['tiles_of_players'][game_info['players'].index(opposit_player)]), opposit_player_tile_image)
+            display_last_player(screen, len(game_info['tiles_of_players'][game_info['players'].index(last_player)]), last_player_tile_image)
+
+        refreshScreen()
 
 main()
 pygame.quit()
