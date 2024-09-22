@@ -3,6 +3,7 @@ using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Text;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
 
 namespace Server;
 
@@ -34,8 +35,6 @@ class MajonServer
                 new Thread((() => HandlePlayerConnection(webSocket, gameServer))).Start();
                 Console.WriteLine("Client connected!");
 
-                // 开启一个任务来处理客户端
-
             }
             else
             {
@@ -62,7 +61,7 @@ class MajonServer
         byte[] buffer = new byte[1024];
 
         var player = gameServer.AddNewPlayer(webSocket);
-
+        await gameServer.BroadcastToAll($"player{player.GetPlayerId()} joined");
         
         while (webSocket.State == WebSocketState.Open)
         {
@@ -80,35 +79,14 @@ class MajonServer
             {
 
                 string receivedMessage = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                Console.WriteLine($"Received: {receivedMessage}");
-                var response = Encoding.UTF8.GetBytes($"Server: hihi received");
-                await webSocket.SendAsync(new ArraySegment<byte>(response), WebSocketMessageType.Text, true, CancellationToken.None);
-                // 发送消息给所有客户端
-                // await BroadcastMessageAsync(receivedMessage);
+                gameServer.PlayerAction(player, receivedMessage);
+                // Console.WriteLine($"Received: {receivedMessage}");
+                // var response = Encoding.UTF8.GetBytes($"Server: hihi received");
+                // await webSocket.SendAsync(new ArraySegment<byte>(response), WebSocketMessageType.Text, true, CancellationToken.None);
+
             }
         }
         
-        // while (client.Connected)
-        // {
-        //     var bytes = await stream.ReadAsync(buffer);
-        //     var message = Encoding.ASCII.GetString(buffer, 0, bytes);
-        //     if (IsWebSocketHandShake(message))
-        //     {
-        //         Console.WriteLine("hand shake");
-        //         continue;
-        //     }
-        //
-        //     Console.WriteLine(message);
-        //     var messageParts = message.Split('|');
-        //     gameServer.PlayerAction(player, messageParts);
-        //
-        // }
-        // Console.WriteLine(player.GetPlayerId()+" disconnected");
         
-    }
-
-    private static bool IsWebSocketHandShake(string message)
-    {
-        return message.Contains("Upgrade: websocket");
     }
 }

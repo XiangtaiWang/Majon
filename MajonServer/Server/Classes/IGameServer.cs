@@ -8,5 +8,6 @@ public interface IGameServer
     IGameRoom CreateRoom(Player player);
     Player AddNewPlayer(WebSocket webSocket);
     void PlayerLeave(int playerId);
-    void PlayerAction(Player player, string[] messageParts);
+    void PlayerAction(Player player, string messageParts);
+    Task BroadcastToAll(string message);
 }
