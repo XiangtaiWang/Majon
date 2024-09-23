@@ -7,76 +7,84 @@ namespace Server;
 public class GameServer : IGameServer
 {
     // private static List<GameRoom> _roomsList = new();
-    private static ConcurrentDictionary<int, Player> _players = new();
-    private static Queue<int> _emptyPlayerId = new();
-    private static Queue<int> _emptyRoom = new();
-    private static ConcurrentDictionary<int, GameRoom> _roomsList = new();
+    private static readonly ConcurrentDictionary<int, Player> Players = new();
+    private static readonly ConcurrentStack<int> UnUsedPlayerId = new();
+    private static readonly ConcurrentStack<int> UnusedRoom = new();
+    private static readonly ConcurrentDictionary<int, GameRoom> RoomsList = new();
 
     public GameServer()
     {
-        for (int i = 0; i < 100; i++)
+        for (int i = 100; i >0; i--)
         {
-            _emptyPlayerId.Enqueue(i);
-            _emptyRoom.Enqueue(i);
+            UnUsedPlayerId.Push(i);
+            UnusedRoom.Push(i);
         } 
         
-        new Thread((() => BroadcastRoomList())).Start();
+        new Thread((() => _ = BroadcastRoomList())).Start();
     }
 
     private async Task BroadcastRoomList()
     {
-        using PeriodicTimer timer = new(TimeSpan.FromSeconds(10));
+        using PeriodicTimer timer = new(TimeSpan.FromSeconds(5));
         var lobbyInformation = new LobbyInformation();
 
         while (await timer.WaitForNextTickAsync())
         {
             Console.WriteLine("Broadcasting room list" + DateTime.Now);
-            var players = _players.Values.Where(p => p.GetCurrentRoom() == null).ToList();
-            lobbyInformation.Rooms = _roomsList.Keys.ToList();
+            var players = Players.Values.Where(p => p.GetCurrentRoom() == null).ToList();
+            lobbyInformation.Rooms = RoomsList.Keys.ToList();
             var info = JsonConvert.SerializeObject(lobbyInformation);
 
-            foreach (var player in players)
-            {
-                try
-                {
-                    if (player.GetWebSocket().State == WebSocketState.Open)
-                    {
-                        await WebSocketHelper.SendMessage(player.GetWebSocket(), info);
-                    }
-                    else
-                    {
-                        PlayerLeave(player.GetPlayerId());
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Exception sending message to player {player.GetPlayerId()}: {ex.Message}");
-                    PlayerLeave(player.GetPlayerId());
-                }
-            }
+            await BroadcastPlayers(info, players);
+            
         }
     }
 
     public IGameRoom CreateRoom(Player player)
     {
-        var roomId = _emptyRoom.Dequeue();
+        var roomId = GetNonUsedRoomId();
         var room = new GameRoom(roomId);
-        _roomsList.TryAdd(roomId, room);
+        RoomsList.TryAdd(roomId, room);
         room.PlayerJoin(player);
         return room;
     }
-    
+
+    private static int GetNonUsedRoomId()
+    {
+        UnusedRoom.TryPop(out var roomId);
+        return roomId;
+    }
+
     public Player AddNewPlayer(WebSocket webSocket)
     {
-        var player = new Player(_emptyPlayerId.Dequeue(), webSocket);
-        _players.TryAdd(player.GetPlayerId(), player);
+        var playerId = GetNonUsedPlayerId();
+        var player = new Player(playerId, webSocket);
+        Players.TryAdd(player.GetPlayerId(), player);
         return player;
+    }
+
+    private static int GetNonUsedPlayerId()
+    {
+        UnUsedPlayerId.TryPop(out var playerId);
+        return playerId;
     }
 
     public void PlayerLeave(int playerId)
     {
-        _players.TryRemove(playerId, out var player);
-        _emptyPlayerId.Enqueue(playerId);
+        if (!Players.TryRemove(playerId, out var player))
+        {
+            Console.WriteLine($"Player with ID {playerId} not found in _players dictionary.");
+        }
+        UnUsedPlayerId.Push(playerId);
+        
+        var currentRoom = player.GetCurrentRoom();
+        currentRoom.PlayerLeave(player);
+        if (currentRoom.PlayerCount==0)
+        {
+            var roomId = currentRoom.GetRoomId();
+            RoomsList.TryRemove(roomId, out _);
+            UnusedRoom.Push(roomId);
+        }
     }
 
     public void PlayerAction(Player player, string message)
@@ -98,7 +106,12 @@ public class GameServer : IGameServer
 
     public async Task BroadcastToAll(string message)
     {
-        foreach (var player in _players.Values)
+        await BroadcastPlayers(message, Players.Values);
+    }
+
+    public async Task BroadcastPlayers(string message, IEnumerable<Player> players)
+    {
+        foreach (var player in players)
         {
             try
             {
@@ -127,14 +140,14 @@ public class GameServer : IGameServer
         switch (playerRoomAction)
         {
             case PlayerInLobbyAction.Create:
-                roomId = _emptyRoom.Dequeue();
+                roomId = GetNonUsedRoomId();
                 var gameRoom = new GameRoom(roomId);
-                _roomsList.TryAdd(roomId, gameRoom);
+                RoomsList.TryAdd(roomId, gameRoom);
                 player.SetRoom(gameRoom);
                 break;
             case PlayerInLobbyAction.Join:
                 roomId = int.Parse(messageParts[1]);
-                if (_roomsList.TryGetValue(roomId, out var room))
+                if (RoomsList.TryGetValue(roomId, out var room))
                 {
                     player.SetRoom(room);    
                 }
@@ -146,17 +159,21 @@ public class GameServer : IGameServer
     }
 }
 
-public class PlayerJoinedInfo
+public class PlayerJoinedInfo(string message)
 {
     public readonly MessageType MessageType = MessageType.CanIgnore;
-    public string Message;
+    public string Message = message;
 }
 public class LobbyInformation
 {
     public readonly MessageType MessageType = MessageType.Lobby;
     public IEnumerable<int> Rooms;
 }
-
+public class RoomInformation(string message)
+{
+    public readonly MessageType MessageType = MessageType.Room;
+    public string Message = message;
+}
 public enum MessageType
 {
     CanIgnore = 0,

@@ -10,7 +10,7 @@ public class Player : IPlayer
     public List<Tile> _handTiles;
     public List<Tile> _eatOrPongTiles;
     private WebSocket _connection;
-    private IGameRoom _gameRoom;
+    private GameRoom _gameRoom;
     public List<PlayerAvailableActionInGame> AvailableActions;
     public bool IsThisPlayerTurn { get; set; }
 
@@ -80,12 +80,12 @@ public class Player : IPlayer
         // await _webSocket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(information)), WebSocketMessageType.Text, true, CancellationToken.None);
     }
 
-    public IGameRoom GetCurrentRoom()
+    public GameRoom GetCurrentRoom()
     {
         return _gameRoom;
     }
 
-    public void SetRoom(IGameRoom gameRoom)
+    public void SetRoom(GameRoom gameRoom)
     {
         _gameRoom = gameRoom;
     }

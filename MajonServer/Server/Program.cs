@@ -50,27 +50,35 @@ class MajonServer
         byte[] buffer = new byte[1024];
 
         var player = gameServer.AddNewPlayer(webSocket);
-        var playerJoinedInfo = new PlayerJoinedInfo();
-        playerJoinedInfo.Message = $"player{player.GetPlayerId()} joined";
+        var notification = $"player{player.GetPlayerId()} joined";
+        var playerJoinedInfo = new PlayerJoinedInfo(notification);
+        
         var message = JsonConvert.SerializeObject(playerJoinedInfo);
         await gameServer.BroadcastToAll(message);
-        
-        while (webSocket.State == WebSocketState.Open)
+        try
         {
-            WebSocketReceiveResult result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+            while (webSocket.State == WebSocketState.Open)
+            {
+                WebSocketReceiveResult result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
 
-            if (result.MessageType == WebSocketMessageType.Close)
-            {
-                await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closed by server", CancellationToken.None);
-                Console.WriteLine("Client disconnected.");
-                gameServer.PlayerLeave(player.GetPlayerId());
-                break;
+                if (result.MessageType == WebSocketMessageType.Close)
+                {
+                    await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closed by server", CancellationToken.None);
+                    Console.WriteLine("Client disconnected.");
+                    gameServer.PlayerLeave(player.GetPlayerId());
+                    break;
+                }
+                else
+                {
+                    string receivedMessage = Encoding.UTF8.GetString(buffer, 0, result.Count);
+                    gameServer.PlayerAction(player, receivedMessage);
+                }
             }
-            else
-            {
-                string receivedMessage = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                gameServer.PlayerAction(player, receivedMessage);
-            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Exception in HandlePlayerConnection: {ex.Message}");
+            gameServer.PlayerLeave(player.GetPlayerId());
         }
     }
 }

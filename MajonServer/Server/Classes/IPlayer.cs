@@ -15,8 +15,8 @@ public interface IPlayer
     public void Pong();
     // public IGameRoom AskCreateRoom();
     Task Display(string information);
-    public IGameRoom GetCurrentRoom();
-    void SetRoom(IGameRoom gameRoom);
+    public GameRoom GetCurrentRoom();
+    void SetRoom(GameRoom gameRoom);
     public WebSocket GetWebSocket();
     public void UpdateAvailableActions(Tile tile);
 }

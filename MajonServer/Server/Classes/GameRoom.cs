@@ -7,6 +7,7 @@ public class GameRoom : IGameRoom
     private List<Player> _players;
     private List<Tile> _allTiles;
     private List<Tile> _sentTiles;
+    public int PlayerCount => _players.Count;
     private int _roomId;
     private bool _isGameRunning = false;
     private ConcurrentDictionary<SeatDirection, Player> _seatInfo = new();
@@ -184,6 +185,11 @@ public class GameRoom : IGameRoom
             _initialTurnIndex = 1;
         }
         //todo
+    }
+
+    public int GetRoomId()
+    {
+        return _roomId;
     }
 
     private void PlayerSentTile(Tile tile)
