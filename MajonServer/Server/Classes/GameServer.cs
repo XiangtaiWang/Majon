@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.Net.WebSockets;
-using System.Text;
 using Newtonsoft.Json;
 
 namespace Server;
@@ -8,7 +7,7 @@ namespace Server;
 public class GameServer : IGameServer
 {
     // private static List<GameRoom> _roomsList = new();
-    private static List<Player> _players = new();
+    private static ConcurrentDictionary<int, Player> _players = new();
     private static Queue<int> _emptyPlayerId = new();
     private static Queue<int> _emptyRoom = new();
     private static ConcurrentDictionary<int, GameRoom> _roomsList = new();
@@ -20,31 +19,42 @@ public class GameServer : IGameServer
             _emptyPlayerId.Enqueue(i);
             _emptyRoom.Enqueue(i);
         } 
+        
         new Thread((() => BroadcastRoomList())).Start();
     }
 
     private async Task BroadcastRoomList()
     {
-        
-        using PeriodicTimer timer = new(TimeSpan.FromSeconds(2));
+        using PeriodicTimer timer = new(TimeSpan.FromSeconds(10));
         var lobbyInformation = new LobbyInformation();
-        
+
         while (await timer.WaitForNextTickAsync())
         {
-            Console.WriteLine("Broadcasting room list");
-            var players = _players.Where(p=> p.GetCurrentRoom()==null);
+            Console.WriteLine("Broadcasting room list" + DateTime.Now);
+            var players = _players.Values.Where(p => p.GetCurrentRoom() == null).ToList();
             lobbyInformation.Rooms = _roomsList.Keys.ToList();
             var info = JsonConvert.SerializeObject(lobbyInformation);
-            Console.WriteLine(info);
-            var message = Encoding.ASCII.GetBytes(info);  
 
             foreach (var player in players)
             {
-                await player.GetWebSocket().SendAsync(new ArraySegment<byte>(message), WebSocketMessageType.Text, true,
-                    CancellationToken.None);
+                try
+                {
+                    if (player.GetWebSocket().State == WebSocketState.Open)
+                    {
+                        await WebSocketHelper.SendMessage(player.GetWebSocket(), info);
+                    }
+                    else
+                    {
+                        PlayerLeave(player.GetPlayerId());
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Exception sending message to player {player.GetPlayerId()}: {ex.Message}");
+                    PlayerLeave(player.GetPlayerId());
+                }
             }
         }
-        
     }
 
     public IGameRoom CreateRoom(Player player)
@@ -59,20 +69,18 @@ public class GameServer : IGameServer
     public Player AddNewPlayer(WebSocket webSocket)
     {
         var player = new Player(_emptyPlayerId.Dequeue(), webSocket);
-        _players.Add(player);
+        _players.TryAdd(player.GetPlayerId(), player);
         return player;
     }
 
     public void PlayerLeave(int playerId)
     {
-        //todo?
-        // var player = _players.First(p=> p.GetPlayerId()==playerId);
+        _players.TryRemove(playerId, out var player);
         _emptyPlayerId.Enqueue(playerId);
     }
 
     public void PlayerAction(Player player, string message)
     {
-        // var actionType = (PlayerActionType) short.Parse(messageParts[0]);
         var messageParts = message.Split('|');
         var playerCurrentRoom = player.GetCurrentRoom();
         if (playerCurrentRoom == null)
@@ -90,9 +98,24 @@ public class GameServer : IGameServer
 
     public async Task BroadcastToAll(string message)
     {
-        foreach (var player in _players)
+        foreach (var player in _players.Values)
         {
-            await WebSocketHelper.SendMessage(player.GetWebSocket(), message);
+            try
+            {
+                if (player.GetWebSocket().State == WebSocketState.Open)
+                {
+                    await WebSocketHelper.SendMessage(player.GetWebSocket(), message);
+                }
+                else
+                {
+                    PlayerLeave(player.GetPlayerId());
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception sending message to player {player.GetPlayerId()}: {ex.Message}");
+                PlayerLeave(player.GetPlayerId());
+            }
         }
     }
 
@@ -115,23 +138,28 @@ public class GameServer : IGameServer
                 {
                     player.SetRoom(room);    
                 }
-                
                 break;
             default:
                 throw new ArgumentOutOfRangeException();
+            // todo: send message 
         }
     }
 }
 
+public class PlayerJoinedInfo
+{
+    public readonly MessageType MessageType = MessageType.CanIgnore;
+    public string Message;
+}
 public class LobbyInformation
 {
-    public readonly PlayerLocation PlayerLocation = PlayerLocation.Lobby;
+    public readonly MessageType MessageType = MessageType.Lobby;
     public IEnumerable<int> Rooms;
 }
 
-public enum PlayerLocation
+public enum MessageType
 {
-    Unknown = 0,
+    CanIgnore = 0,
     Lobby = 1,
     Room = 2
 }

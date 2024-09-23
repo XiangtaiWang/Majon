@@ -1,5 +1,4 @@
 ﻿using System.Net;
-using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Text;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,15 +23,14 @@ class MajonServer
         while (true)
         {
             HttpListenerContext context = await httpListener.GetContextAsync();
-
-            // 如果请求的是 WebSocket 升级
+            
             if (context.Request.IsWebSocketRequest)
             {
                 // 接受 WebSocket 连接
                 WebSocketContext wsContext = await context.AcceptWebSocketAsync(null);
                 WebSocket webSocket = wsContext.WebSocket;
 
-                new Thread((() => HandlePlayerConnection(webSocket, gameServer))).Start();
+                new Thread((() => _ = HandlePlayerConnection(webSocket, gameServer))).Start();
                 Console.WriteLine("Client connected!");
 
             }
@@ -43,16 +41,7 @@ class MajonServer
                 context.Response.Close();
             }
         }
-
-        // while (true) // Add your exit flag here
-        // {
-        //
-        //     var client = await server.AcceptTcpClientAsync();
-        //     Console.WriteLine("a client connected");
-        //     new Thread(() => _ = HandlePlayerConnection(client, gameServer)).Start();
-        //
-        // }
-
+        
     }
 
     private static async Task HandlePlayerConnection(WebSocket webSocket, IGameServer gameServer)
@@ -61,32 +50,27 @@ class MajonServer
         byte[] buffer = new byte[1024];
 
         var player = gameServer.AddNewPlayer(webSocket);
-        await gameServer.BroadcastToAll($"player{player.GetPlayerId()} joined");
+        var playerJoinedInfo = new PlayerJoinedInfo();
+        playerJoinedInfo.Message = $"player{player.GetPlayerId()} joined";
+        var message = JsonConvert.SerializeObject(playerJoinedInfo);
+        await gameServer.BroadcastToAll(message);
         
         while (webSocket.State == WebSocketState.Open)
         {
-            // 接收客户端数据
             WebSocketReceiveResult result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
 
             if (result.MessageType == WebSocketMessageType.Close)
             {
-                // 客户端请求关闭连接
                 await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closed by server", CancellationToken.None);
                 Console.WriteLine("Client disconnected.");
                 gameServer.PlayerLeave(player.GetPlayerId());
+                break;
             }
             else
             {
-
                 string receivedMessage = Encoding.UTF8.GetString(buffer, 0, result.Count);
                 gameServer.PlayerAction(player, receivedMessage);
-                // Console.WriteLine($"Received: {receivedMessage}");
-                // var response = Encoding.UTF8.GetBytes($"Server: hihi received");
-                // await webSocket.SendAsync(new ArraySegment<byte>(response), WebSocketMessageType.Text, true, CancellationToken.None);
-
             }
         }
-        
-        
     }
 }
