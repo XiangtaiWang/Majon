@@ -57,13 +57,17 @@ public class GameServer : IGameServer
 
     public Player AddNewPlayer(WebSocket webSocket)
     {
-        var playerId = GetNonUsedPlayerId();
+        var playerId = GetUnUsedPlayerId(); 
+        while (Players.Values.FirstOrDefault(p=>p.GetPlayerId()==playerId, null) != null)
+        {
+            playerId = GetUnUsedPlayerId();
+        }
         var player = new Player(playerId, webSocket);
         Players.TryAdd(player.GetPlayerId(), player);
         return player;
     }
 
-    private static int GetNonUsedPlayerId()
+    private static int GetUnUsedPlayerId()
     {
         UnUsedPlayerId.TryPop(out var playerId);
         return playerId;
