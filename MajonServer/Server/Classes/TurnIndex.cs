@@ -1,4 +1,4 @@
-namespace Server;
+namespace Server.Classes;
 
 public class TurnIndex
 {
@@ -12,5 +12,17 @@ public class TurnIndex
         Indexs.AddLast(SeatDirection.South);
         Indexs.AddLast(SeatDirection.West);
         Indexs.AddLast(SeatDirection.North);
+    }
+
+    public LinkedListNode<SeatDirection> Find(SeatDirection direction)
+    {
+        return Indexs.Find(direction);
+    }
+
+    public LinkedListNode<SeatDirection> GoNext(SeatDirection value)
+    {
+        var nextNode = Indexs.Find(value).Next;
+
+        return nextNode==null?Indexs.First:nextNode;
     }
 }

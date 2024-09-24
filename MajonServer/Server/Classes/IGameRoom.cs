@@ -2,12 +2,12 @@ namespace Server;
 
 public interface IGameRoom
 {
-    public void StartGame();
+    public Task StartGame();
 
     public void WinThisRound();
 
     public void GameFinish();
-    public void PlayerJoin(Player player);
+    public Task PlayerJoin(Player player);
     public void PlayerLeave(Player player);
     public List<Player> IsPlayerIdInThisRoom();
     void HandleRoomMessage(Player player, string[] messageParts);

@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using Newtonsoft.Json;
 
-namespace Server;
+namespace Server.Classes;
 
 public class GameServer : IGameServer
 {
@@ -45,15 +45,6 @@ public class GameServer : IGameServer
             }
             
         }
-    }
-
-    public IGameRoom CreateRoom(Player player)
-    {
-        var roomId = GetNonUsedRoomId();
-        var room = new GameRoom(roomId);
-        RoomsList.TryAdd(roomId, room);
-        room.PlayerJoin(player);
-        return room;
     }
 
     private static int GetNonUsedRoomId()
@@ -182,26 +173,28 @@ public class GameServer : IGameServer
     private static async Task NotifyPlayerJoinRoom(Player player)
     {
         var currentRoom = player.GetCurrentRoom();
-        var roomInformation = new RoomInformation("");
-        roomInformation.RoomId = currentRoom.GetRoomId();
-        roomInformation.Players = currentRoom.GetPlayers();
+        var roomInformation = new RoomInformation
+        {
+            RoomId = currentRoom.GetRoomId(),
+            Players = currentRoom.GetPlayers()
+        };
         var msg = JsonConvert.SerializeObject(roomInformation);
         await WebSocketHelper.SendMessage(player.GetWebSocket(), msg);
     }
 
-    private static GameRoom PlayerCreateRoom()
+    private GameRoom PlayerCreateRoom()
     {
         int roomId;
         GameRoom room;
         roomId = GetNonUsedRoomId();
-        room = new GameRoom(roomId);
+        room = new GameRoom(roomId, this);
         RoomsList.TryAdd(roomId, room);
         return room;
     }
 
-    private static void PlayerJoinRoom(Player player, GameRoom gameRoom)
+    private static async Task PlayerJoinRoom(Player player, GameRoom gameRoom)
     {
-        gameRoom.PlayerJoin(player);
         player.SetRoom(gameRoom);
+        await gameRoom.PlayerJoin(player);
     }
 }

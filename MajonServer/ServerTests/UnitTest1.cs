@@ -1,4 +1,5 @@
 using Server;
+using Server.Classes;
 using Xunit.Abstractions;
 
 namespace ServerTests;
@@ -16,15 +17,17 @@ public class UnitTest1
     public void Test1()
     {
         var turnIndex = new TurnIndex();
-        var direction = turnIndex.Indexs;
-        foreach (var seatDirection in direction)
+        // var directions = turnIndex.Indexs;
+        var linkedListNode = turnIndex.Find(SeatDirection.South);
+        for (int i = 0; i < 10; i++)
         {
-            _testOutputHelper.WriteLine(seatDirection.ToString());
+            _testOutputHelper.WriteLine(linkedListNode.Value.ToString());
+            linkedListNode = turnIndex.GoNext(linkedListNode.Value);
         }
-        // for (int i = 0; i < 20; i++)
+        // foreach (var seatDirection in directions)
         // {
-        //     _testOutputHelper.WriteLine(direction.Value.ToString());
-        //     direction = direction.Next;
+        //     _testOutputHelper.WriteLine(seatDirection.ToString());
         // }
+
     }
 }

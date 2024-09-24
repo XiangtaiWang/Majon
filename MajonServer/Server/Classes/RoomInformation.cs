@@ -1,9 +1,10 @@
 namespace Server;
 
-public class RoomInformation(string message)
+public class RoomInformation()
 {
     public readonly MessageType MessageType = MessageType.Room;
     public int RoomId;
     public List<int> Players;
-    public string Message = message;
+    public List<Player> PlayersInfo;
+    // public string Message = message;
 }

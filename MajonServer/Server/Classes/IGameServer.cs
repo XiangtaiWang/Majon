@@ -5,7 +5,6 @@ namespace Server;
 
 public interface IGameServer
 {
-    IGameRoom CreateRoom(Player player);
     Player AddNewPlayer(WebSocket webSocket);
     void PlayerLeave(int playerId);
     Task PlayerAction(Player player, string messageParts);

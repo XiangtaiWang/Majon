@@ -1,4 +1,3 @@
-using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Text;
 
@@ -7,12 +6,14 @@ namespace Server;
 public class Player : IPlayer
 {
     private int _playerId;
-    public List<Tile> _handTiles;
-    public List<Tile> _eatOrPongTiles;
+    public int PlayerId => _playerId;
+    public SeatDirection Seat;
+    public List<Tile> HandTiles;
+    public List<Tile> EatOrPongTiles;
+    public List<PlayerAvailableActionInGame> AvailableActions;
+    public bool IsThisPlayerTurn = false;
     private WebSocket _connection;
     private GameRoom _gameRoom;
-    public List<PlayerAvailableActionInGame> AvailableActions;
-    public bool IsThisPlayerTurn { get; set; }
 
     public Player(int playerId, WebSocket connection)
     {
@@ -32,12 +33,12 @@ public class Player : IPlayer
 
     public void SetTiles(List<Tile> tiles)
     {
-        _handTiles = tiles;
+        HandTiles = tiles;
     }
 
     public List<Tile> GetTilesInHand()
     {
-        return _handTiles;
+        return HandTiles;
     }
 
     public void SendTile(Tile tile)
@@ -59,13 +60,6 @@ public class Player : IPlayer
     {
         throw new NotImplementedException();
     }
-
-    // public IGameRoom AskCreateRoom()
-    // {
-    //     //TODO
-    //     var room = GameServer.CreateRoom(this);
-    //     return room;
-    // }
 
     public async Task Display(string information)
     {
@@ -97,7 +91,7 @@ public class Player : IPlayer
 
     public void UpdateAvailableActions(Tile tile)
     {
-        
+        //todo
         throw new NotImplementedException();
     }
 }

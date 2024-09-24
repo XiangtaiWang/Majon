@@ -1,4 +1,6 @@
 using System.Collections.Concurrent;
+using Newtonsoft.Json;
+using Server.Classes;
 
 namespace Server;
 
@@ -6,13 +8,14 @@ public class GameRoom : IGameRoom
 {
     private List<Player> _players;
     private List<Tile> _allTiles;
-    private List<Tile> _sentTiles;
+    private ConcurrentStack<Tile> _sentTiles;
     public int PlayerCount => _players.Count;
     private int _roomId;
     public bool IsGameRunning = false;
     private ConcurrentDictionary<SeatDirection, Player> _seatInfo = new();
     private short _initialTurnIndex = 1;
-    private short _turnIndex = 1;
+    private LinkedListNode<SeatDirection> _currentTurnIndex;
+    private GameServer _server;
     
         
     private readonly List<TileType> _numberTiles = new List<TileType>
@@ -33,10 +36,19 @@ public class GameRoom : IGameRoom
         TileType.NorthWind
     };
 
-    public GameRoom(int roomId)
+    private TurnIndex _turnIndexs;
+    private RoomInformation _roomInformation;
+
+    public GameRoom(int roomId, GameServer gameServer)
     {
         _roomId = roomId;
         _players = new List<Player>();
+        _allTiles = new List<Tile>();
+        _server = gameServer;
+        _roomInformation = new RoomInformation()
+        {
+            RoomId = roomId
+        };
     }
 
     private void AllocateTiles(Random random)
@@ -45,15 +57,14 @@ public class GameRoom : IGameRoom
         foreach (var player in _players)
         {
             player.SetTiles(_allTiles[..16]);
-            player._handTiles.Order();
+            player.HandTiles.Order();
             _allTiles.RemoveRange(0, 16);
-            
         }
     }
 
     private void CreateTiles()
     {
-        _sentTiles = new List<Tile>();
+        _sentTiles = new ConcurrentStack<Tile>();
         foreach (var numberTile in _numberTiles)
         {
             for (var i = 1; i <= 4; i++)
@@ -63,7 +74,6 @@ public class GameRoom : IGameRoom
                     _allTiles.Add(new Tile(tileType: numberTile, tileNumber: j));
                 }   
             }
-
         }
         foreach (var letterTile in _letterTiles)
         {
@@ -73,30 +83,49 @@ public class GameRoom : IGameRoom
             }
         }
     }
-    public void StartGame()
+    public async Task StartGame()
     {
-        CreateTiles();
-        var random = new Random();
-        AllocateTiles(random);
-        AllocateSeats(random);
-        _turnIndex = _initialTurnIndex;
-        RoundStart();
+        Console.WriteLine("Game Start!!");
+        await BroadcastToRoomPlayers(JsonConvert.SerializeObject(new NotImportantInfo("Game Start!!")));
+        try
+        {
+            _roomInformation.Players = GetPlayers();
+            _roomInformation.PlayersInfo = _players;
+            CreateTiles();
+            var random = new Random();
+            _turnIndexs = new TurnIndex();
+            _currentTurnIndex = _turnIndexs.Find(SeatDirection.East);
+        
+            AllocateTiles(random);
+            AllocateSeats(random);
+        
+            await RoundStart();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+
     }
 
-    private void RoundStart()
+    private async Task RoundStart()
     {
-        _seatInfo.TryGetValue((SeatDirection)_turnIndex, out var thisTurnPlayer);
+        _seatInfo.TryGetValue(_currentTurnIndex.Value, out var thisTurnPlayer);
         thisTurnPlayer.IsThisPlayerTurn = true;
 
-        Broadcast();
+        await BroadcastRoomInfo();
     }
 
-    private void Broadcast()
+    private async Task BroadcastRoomInfo()
     {
-        foreach (var player in _players)
-        {
-            // player.Display()
-        }
+        var msg = JsonConvert.SerializeObject(_roomInformation);
+        await BroadcastToRoomPlayers(msg);
+    }
+
+    private async Task BroadcastToRoomPlayers(string msg)
+    {
+        await _server.BroadcastPlayers(msg, _players);
     }
 
     private void AllocateSeats(Random random)
@@ -112,10 +141,12 @@ public class GameRoom : IGameRoom
         _seatInfo.Clear();
         foreach (var direction in seatDirections)
         {
-            _seatInfo.TryAdd(direction, _players[seatDirections.IndexOf(direction)]);
+            var player = _players[seatDirections.IndexOf(direction)];
+            player.Seat = direction;
+            _seatInfo.TryAdd(direction, player);
         }
         
-        throw new NotImplementedException();
+        // throw new NotImplementedException();
     }
 
     public void WinThisRound()
@@ -131,13 +162,13 @@ public class GameRoom : IGameRoom
     }
     
 
-    public void PlayerJoin(Player player)
+    public async Task PlayerJoin(Player player)
     {
         _players.Add(player);
         
         if (_players.Count==4)
         {
-            StartGame();
+            await StartGame();
         }
     }
 
@@ -161,9 +192,9 @@ public class GameRoom : IGameRoom
                 case PlayerInRoomAction.SendTile:
                     var tileType = (TileType) short.Parse(messageParts[1]);
                     var tileNumber = short.Parse(messageParts[2]);
-                    var tile = player._handTiles.First(tile =>
+                    var tile = player.HandTiles.First(tile =>
                         tile._tileType == tileType && tile._tileNumber == tileNumber);
-                    player._handTiles.Remove(tile);
+                    player.HandTiles.Remove(tile);
 
                     PlayerSentTile(tile);
                     break;
@@ -193,25 +224,24 @@ public class GameRoom : IGameRoom
 
     private void PlayerSentTile(Tile tile)
     {
-        _sentTiles.Add(tile);
+        _sentTiles.Push(tile);
         UpdatePlayersStatus();
     }
 
     private void UpdatePlayersStatus()
     {
-        _seatInfo.TryGetValue((SeatDirection)_turnIndex, out var player);
+        _seatInfo.TryGetValue(_currentTurnIndex.Value, out var player);
         player.IsThisPlayerTurn = false;
-        _turnIndex++;
-        if (_turnIndex>=5)
+        _currentTurnIndex = _turnIndexs.GoNext(_currentTurnIndex.Value);
+  
+        // _seatInfo.TryGetValue(_currentTurnIndex.Value, out var nextPlayer);
+        _sentTiles.TryPeek(out var lastTile);
+        foreach (var otherPlayer in _players.Where(p=>p.GetPlayerId()!=player.GetPlayerId()))
         {
-            _turnIndex = 1;    
+            otherPlayer.UpdateAvailableActions(lastTile);    
         }
         
-        _seatInfo.TryGetValue((SeatDirection)_turnIndex, out var nextPlayer);
-        nextPlayer.UpdateAvailableActions(_sentTiles.Last());
-        
-        
-        Broadcast();
+        BroadcastRoomInfo();
     }
 
     public List<int> GetPlayers()
