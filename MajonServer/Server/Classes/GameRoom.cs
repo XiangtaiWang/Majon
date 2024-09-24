@@ -9,7 +9,7 @@ public class GameRoom : IGameRoom
     private List<Tile> _sentTiles;
     public int PlayerCount => _players.Count;
     private int _roomId;
-    private bool _isGameRunning = false;
+    public bool IsGameRunning = false;
     private ConcurrentDictionary<SeatDirection, Player> _seatInfo = new();
     private short _initialTurnIndex = 1;
     private short _turnIndex = 1;

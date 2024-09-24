@@ -50,10 +50,12 @@ class MajonServer
         byte[] buffer = new byte[1024];
 
         var player = gameServer.AddNewPlayer(webSocket);
+        var playerInfo = JsonConvert.SerializeObject(new PlayerInfo(player.GetPlayerId()));
+
+        await gameServer.BroadcastPlayers(playerInfo, new List<Player>() { player });
         var notification = $"player{player.GetPlayerId()} joined";
-        var playerJoinedInfo = new NotImportantInfo(notification);
-        
-        var message = JsonConvert.SerializeObject(playerJoinedInfo);
+        var notImportantInfo = new NotImportantInfo(notification);
+        var message = JsonConvert.SerializeObject(notImportantInfo);
         await gameServer.BroadcastToAll(message);
         try
         {
@@ -81,4 +83,16 @@ class MajonServer
             gameServer.PlayerLeave(player.GetPlayerId());
         }
     }
+}
+
+public class PlayerInfo
+{
+    public MessageType MessageType = MessageType.PlayerInfo;
+    public int PlayerId { get; set; }
+    
+    public PlayerInfo(int getPlayerId)
+    {
+        PlayerId = getPlayerId;
+    }
+    
 }

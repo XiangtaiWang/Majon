@@ -153,12 +153,22 @@ public class GameServer : IGameServer
             case PlayerInLobbyAction.Create:
                 room = PlayerCreateRoom();
                 PlayerJoinRoom(player, room);
+                await NotifyPlayerJoinRoom(player);
                 break;
             case PlayerInLobbyAction.Join:
                 var roomId = int.Parse(messageParts[1]);
                 if (RoomsList.TryGetValue(roomId, out room))
                 {
-                    PlayerJoinRoom(player, room);
+                    if (!room.IsGameRunning)
+                    {
+                        PlayerJoinRoom(player, room);
+                        await NotifyPlayerJoinRoom(player);
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Room{room} already started.");    
+                    }
+                    
                 }
                 else
                 {
@@ -166,7 +176,11 @@ public class GameServer : IGameServer
                 }
                 break;
         }
+        
+    }
 
+    private static async Task NotifyPlayerJoinRoom(Player player)
+    {
         var currentRoom = player.GetCurrentRoom();
         var roomInformation = new RoomInformation("");
         roomInformation.RoomId = currentRoom.GetRoomId();
@@ -190,28 +204,4 @@ public class GameServer : IGameServer
         gameRoom.PlayerJoin(player);
         player.SetRoom(gameRoom);
     }
-}
-
-public class NotImportantInfo(string message)
-{
-    public readonly MessageType MessageType = MessageType.CanIgnore;
-    public string Message = message;
-}
-public class LobbyInformation
-{
-    public readonly MessageType MessageType = MessageType.Lobby;
-    public IEnumerable<int> Rooms;
-}
-public class RoomInformation(string message)
-{
-    public readonly MessageType MessageType = MessageType.Room;
-    public int RoomId;
-    public List<int> Players;
-    public string Message = message;
-}
-public enum MessageType
-{
-    CanIgnore = 0,
-    Lobby = 1,
-    Room = 2
 }
