@@ -71,7 +71,7 @@ class MajonServer
                 else
                 {
                     string receivedMessage = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                    gameServer.PlayerAction(player, receivedMessage);
+                    await gameServer.PlayerAction(player, receivedMessage);
                 }
             }
         }

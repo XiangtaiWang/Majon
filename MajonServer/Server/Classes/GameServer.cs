@@ -98,14 +98,14 @@ public class GameServer : IGameServer
         }
     }
 
-    public void PlayerAction(Player player, string message)
+    public async Task PlayerAction(Player player, string message)
     {
         var messageParts = message.Split('|');
         var playerCurrentRoom = player.GetCurrentRoom();
         if (playerCurrentRoom == null)
         {
             Console.WriteLine("handle lobby message");
-            HandleLobbyMessage(player, messageParts);
+            await HandleLobbyMessage(player, messageParts);
         }
         else
         {
@@ -167,8 +167,10 @@ public class GameServer : IGameServer
                 break;
         }
 
-
+        var currentRoom = player.GetCurrentRoom();
         var roomInformation = new RoomInformation("");
+        roomInformation.RoomId = currentRoom.GetRoomId();
+        roomInformation.Players = currentRoom.GetPlayers();
         var msg = JsonConvert.SerializeObject(roomInformation);
         await WebSocketHelper.SendMessage(player.GetWebSocket(), msg);
     }
@@ -203,6 +205,8 @@ public class LobbyInformation
 public class RoomInformation(string message)
 {
     public readonly MessageType MessageType = MessageType.Room;
+    public int RoomId;
+    public List<int> Players;
     public string Message = message;
 }
 public enum MessageType

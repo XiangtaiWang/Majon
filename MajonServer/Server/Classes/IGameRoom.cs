@@ -13,4 +13,5 @@ public interface IGameRoom
     void HandleRoomMessage(Player player, string[] messageParts);
     public void NewRound();
     public int GetRoomId();
+    List<int> GetPlayers();
 }

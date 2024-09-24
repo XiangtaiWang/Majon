@@ -213,5 +213,9 @@ public class GameRoom : IGameRoom
         
         Broadcast();
     }
-    
+
+    public List<int> GetPlayers()
+    {
+        return _players.Select(p=>p.GetPlayerId()).ToList();
+    }
 }
