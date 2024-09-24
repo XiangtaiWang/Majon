@@ -141,10 +141,9 @@ public class GameRoom : IGameRoom
         }
     }
 
-    public void PlayerLeave(IPlayer player)
+    public void PlayerLeave(Player player)
     {
-        
-        throw new NotImplementedException();
+        _players = _players.Where(p => p.GetPlayerId() != player.GetPlayerId()).ToList();
     }
 
     public List<Player> IsPlayerIdInThisRoom()

@@ -30,12 +30,19 @@ public class GameServer : IGameServer
 
         while (await timer.WaitForNextTickAsync())
         {
-            Console.WriteLine("Broadcasting room list" + DateTime.Now);
-            var players = Players.Values.Where(p => p.GetCurrentRoom() == null).ToList();
-            lobbyInformation.Rooms = RoomsList.Keys.ToList();
-            var info = JsonConvert.SerializeObject(lobbyInformation);
+            try
+            {
+                Console.WriteLine("Broadcasting room list " + DateTime.Now);
+                var players = Players.Values.Where(p => p.GetCurrentRoom() == null).ToList();
+                lobbyInformation.Rooms = RoomsList.Keys.ToList();
+                var info = JsonConvert.SerializeObject(lobbyInformation);
 
-            await BroadcastPlayers(info, players);
+                await BroadcastPlayers(info, players);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception in BroadcastRoomList: {ex.Message}");
+            }
             
         }
     }
@@ -136,34 +143,54 @@ public class GameServer : IGameServer
         }
     }
 
-    private void HandleLobbyMessage(IPlayer player, string[] messageParts)
+    private async Task HandleLobbyMessage(Player player, string[] messageParts)
     {
         var action = short.Parse(messageParts[0]);
         var playerRoomAction = (PlayerInLobbyAction)action;
-        int roomId;
+        GameRoom room;
         switch (playerRoomAction)
         {
             case PlayerInLobbyAction.Create:
-                roomId = GetNonUsedRoomId();
-                var gameRoom = new GameRoom(roomId);
-                RoomsList.TryAdd(roomId, gameRoom);
-                player.SetRoom(gameRoom);
+                room = PlayerCreateRoom();
+                PlayerJoinRoom(player, room);
                 break;
             case PlayerInLobbyAction.Join:
-                roomId = int.Parse(messageParts[1]);
-                if (RoomsList.TryGetValue(roomId, out var room))
+                var roomId = int.Parse(messageParts[1]);
+                if (RoomsList.TryGetValue(roomId, out room))
                 {
-                    player.SetRoom(room);    
+                    PlayerJoinRoom(player, room);
+                }
+                else
+                {
+                    Console.WriteLine($"Room{room} not found.");
                 }
                 break;
-            default:
-                throw new ArgumentOutOfRangeException();
-            // todo: send message 
         }
+
+
+        var roomInformation = new RoomInformation("");
+        var msg = JsonConvert.SerializeObject(roomInformation);
+        await WebSocketHelper.SendMessage(player.GetWebSocket(), msg);
+    }
+
+    private static GameRoom PlayerCreateRoom()
+    {
+        int roomId;
+        GameRoom room;
+        roomId = GetNonUsedRoomId();
+        room = new GameRoom(roomId);
+        RoomsList.TryAdd(roomId, room);
+        return room;
+    }
+
+    private static void PlayerJoinRoom(Player player, GameRoom gameRoom)
+    {
+        gameRoom.PlayerJoin(player);
+        player.SetRoom(gameRoom);
     }
 }
 
-public class PlayerJoinedInfo(string message)
+public class NotImportantInfo(string message)
 {
     public readonly MessageType MessageType = MessageType.CanIgnore;
     public string Message = message;

@@ -8,7 +8,7 @@ public interface IGameRoom
 
     public void GameFinish();
     public void PlayerJoin(Player player);
-    public void PlayerLeave(IPlayer player);
+    public void PlayerLeave(Player player);
     public List<Player> IsPlayerIdInThisRoom();
     void HandleRoomMessage(Player player, string[] messageParts);
     public void NewRound();

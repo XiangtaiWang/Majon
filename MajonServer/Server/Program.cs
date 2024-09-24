@@ -29,7 +29,7 @@ class MajonServer
                 // 接受 WebSocket 连接
                 WebSocketContext wsContext = await context.AcceptWebSocketAsync(null);
                 WebSocket webSocket = wsContext.WebSocket;
-
+                
                 new Thread((() => _ = HandlePlayerConnection(webSocket, gameServer))).Start();
                 Console.WriteLine("Client connected!");
 
@@ -51,7 +51,7 @@ class MajonServer
 
         var player = gameServer.AddNewPlayer(webSocket);
         var notification = $"player{player.GetPlayerId()} joined";
-        var playerJoinedInfo = new PlayerJoinedInfo(notification);
+        var playerJoinedInfo = new NotImportantInfo(notification);
         
         var message = JsonConvert.SerializeObject(playerJoinedInfo);
         await gameServer.BroadcastToAll(message);
