@@ -34,7 +34,12 @@ const App = () => {
       }
     };
   }, []);
-
+  const sendMessage = (message)=>{
+    if ( ws.current.readyState === WebSocket.OPEN) {
+      ws.current.send(message);
+      console.log(`Message sent: ${message}`);
+    }
+  }
   const getImageFileName = (tile)=>{
     let fileName=""
     if(tile.TileType>3){
@@ -85,12 +90,25 @@ const App = () => {
     }
     return fileName
   }
-  const renderHandTiles = (handTiles) => {
+  const renderHandTiles = (handTiles, isPlayerTurn) => {
     return handTiles.map((tile, index) => (
       <img
         key={index}
         src={`/images/${getImageFileName(tile)}.png`}
-        style={{ width: '50px', height: '75px', margin: '2px' }}
+        style={{
+          width: '50px',
+          height: '75px',
+          margin: '2px',
+          cursor: isPlayerTurn ? 'pointer' : 'default', // 如果是玩家的回合，顯示為可點擊的
+          opacity: isPlayerTurn ? 1 : 0.6 // 如果不是玩家的回合，稍微降低不透明度
+        }}
+        onClick={() => {
+          if (isPlayerTurn) {
+            const message = `2|${tile.TileType}|${tile.TileNumber}`;
+            sendMessage(message)
+          }
+        }}
+        alt={`Tile ${tile.TileType}-${tile.TileNumber}`}
       />
     ));
   };
@@ -173,7 +191,7 @@ const App = () => {
 
         {/* Bottom (current player) */}
         <div className="bottom-player">
-          {renderHandTiles(currentPlayer.HandTiles)}
+        {renderHandTiles(currentPlayer.HandTiles, currentPlayer.IsThisPlayerTurn)}
         </div>
       </div>
     );

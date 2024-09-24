@@ -1,6 +1,6 @@
 namespace Server;
 
-public class Tile
+public class Tile : IEquatable<Tile>
 {
     public TileType TileType;
     public short TileNumber;
@@ -23,22 +23,27 @@ public class Tile
 
     public Tile(TileType tileType, short tileNumber)
     {
-        if (!_tileNeedNumber.Contains(tileType))
-        {
-            throw new Exception("incorrect create tile");
-        }
+        // if (!_tileNeedNumber.Contains(tileType))
+        // {
+        //     throw new Exception("incorrect create tile");
+        // }
         TileType = tileType;
         TileNumber = tileNumber;
     }
-    public Tile(TileType tileType)
-    {
-        if (!_letterTiles.Contains(tileType))
-        {
-            throw new Exception("incorrect create tile");
-        }
+    // public Tile(TileType tileType)
+    // {
+    //     if (!_letterTiles.Contains(tileType))
+    //     {
+    //         throw new Exception("incorrect create tile");
+    //     }
+    //
+    //     TileNumber = 0;
+    //     TileType = tileType;
+    // }
 
-        TileNumber = 0;
-        TileType = tileType;
+    public bool Equals(Tile other)
+    {
+        return TileType == other.TileType && TileNumber == other.TileNumber;
     }
 }
 

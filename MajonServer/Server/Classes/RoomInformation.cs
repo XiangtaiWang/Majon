@@ -6,7 +6,7 @@ public class RoomInformation()
     public int RoomId;
     public List<int> Players;
     public List<Player> PlayersInfo;
-    public List<Tile> SentTiles;
+    // public int WhosePlayerTurn => PlayersInfo.Find(p => p.IsThisPlayerTurn).GetPlayerId();
     public Tile LastSentTile;
 
 }

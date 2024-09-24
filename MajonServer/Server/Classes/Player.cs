@@ -9,6 +9,7 @@ public class Player : IPlayer
     public int PlayerId => _playerId;
     public SeatDirection Seat;
     public List<Tile> HandTiles;
+    public List<Tile> SentTiles;
     public List<Tile> EatOrPongTiles;
     public List<PlayerAvailableActionInGame> AvailableActions;
     public bool IsThisPlayerTurn = false;
@@ -19,6 +20,7 @@ public class Player : IPlayer
     {
         _playerId = playerId;
         _connection = connection;
+        SentTiles = new List<Tile>();
     }
 
     public int GetPlayerId()

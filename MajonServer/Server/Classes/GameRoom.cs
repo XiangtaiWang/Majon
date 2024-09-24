@@ -79,7 +79,7 @@ public class GameRoom : IGameRoom
         {
             for (short i = 1; i <= 9; i++)
             {
-                _allTiles.Add(new Tile(tileType: letterTile));
+                _allTiles.Add(new Tile(tileType: letterTile, tileNumber:0));
             }
         }
     }
@@ -198,11 +198,9 @@ public class GameRoom : IGameRoom
                 case PlayerInRoomAction.SendTile:
                     var tileType = (TileType) short.Parse(messageParts[1]);
                     var tileNumber = short.Parse(messageParts[2]);
-                    var tile = player.HandTiles.First(tile =>
-                        tile.TileType == tileType && tile.TileNumber == tileNumber);
-                    player.HandTiles.Remove(tile);
-
-                    PlayerSentTile(tile);
+                    var tile = new Tile(tileType, tileNumber);
+                    
+                    PlayerSentTile(player, tile);
                     break;
                 case PlayerInRoomAction.AskToWin:
                     break;
@@ -228,10 +226,17 @@ public class GameRoom : IGameRoom
         return _roomId;
     }
 
-    private void PlayerSentTile(Tile tile)
+    private void PlayerSentTile(Player player, Tile tile)
     {
-        _sentTiles.Push(tile);
-        UpdatePlayersStatus();
+        if (player.HandTiles.Contains(tile))
+        {
+            player.HandTiles.Remove(tile);
+            player.
+            _sentTiles.Push(tile);
+            UpdatePlayersStatus();
+        }
+        
+        
     }
 
     private void UpdatePlayersStatus()
