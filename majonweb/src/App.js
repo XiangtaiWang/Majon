@@ -104,7 +104,7 @@ const App = () => {
         }}
         onClick={() => {
           if (isPlayerTurn) {
-            const message = `2|${tile.TileType}|${tile.TileNumber}`;
+            const message = `1|${tile.TileType}|${tile.TileNumber}`;
             sendMessage(message)
           }
         }}
@@ -154,6 +154,16 @@ const App = () => {
   const renderLoading = () =>{
     return <div>Loading...</div>;
   }
+  const renderSentTiles = (sentTiles) => {
+    return sentTiles.map((tile, index) => (
+      <img
+        key={index}
+        src={`/images/${getImageFileName(tile)}.png`}
+        style={{ width: '30px', height: '50px', margin: '2px' }}
+        alt={`Sent Tile ${tile.TileType}-${tile.TileNumber}`}
+      />
+    ));
+  };
   const renderTable = () => {
     const currentPlayer = gameState.PlayersInfo.find(player => player.PlayerId === myPlayerId);
     const playerBySeat = {};
@@ -186,7 +196,13 @@ const App = () => {
 
         {/* Center (played tiles area) */}
         <div className="center">
-          <h3>Played Tiles</h3>
+          <div className="sent-tiles-container">
+            {/* Render each player's sent tiles */}
+            <div className="sent-tiles top">{renderSentTiles(seatOrder.top.SentTiles || [])}</div>
+            <div className="sent-tiles left">{renderSentTiles(seatOrder.left.SentTiles || [])}</div>
+            <div className="sent-tiles right">{renderSentTiles(seatOrder.right.SentTiles || [])}</div>
+            <div className="sent-tiles bottom">{renderSentTiles(currentPlayer.SentTiles)}</div>
+          </div>
         </div>
 
         {/* Bottom (current player) */}

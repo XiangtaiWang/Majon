@@ -188,7 +188,7 @@ public class GameRoom : IGameRoom
         return _players;
     }
 
-    public void HandleRoomMessage(Player player, string[] messageParts)
+    public async Task HandleRoomMessage(Player player, string[] messageParts)
     {
         var actionType = (PlayerInRoomAction)int.Parse(messageParts[0]);
         if (player.IsThisPlayerTurn)
@@ -200,7 +200,7 @@ public class GameRoom : IGameRoom
                     var tileNumber = short.Parse(messageParts[2]);
                     var tile = new Tile(tileType, tileNumber);
                     
-                    PlayerSentTile(player, tile);
+                    await PlayerSentTile(player, tile);
                     break;
                 case PlayerInRoomAction.AskToWin:
                     break;
@@ -226,33 +226,32 @@ public class GameRoom : IGameRoom
         return _roomId;
     }
 
-    private void PlayerSentTile(Player player, Tile tile)
+    private async Task PlayerSentTile(Player player, Tile tile)
     {
         if (player.HandTiles.Contains(tile))
         {
             player.HandTiles.Remove(tile);
-            player.
+            player.SentTiles.Push(tile);
             _sentTiles.Push(tile);
-            UpdatePlayersStatus();
+            await UpdatePlayersStatus(player);
         }
-        
-        
     }
 
-    private void UpdatePlayersStatus()
+    private async Task UpdatePlayersStatus(Player player)
     {
-        _seatInfo.TryGetValue(_currentTurnIndex.Value, out var player);
+        // _seatInfo.TryGetValue(_currentTurnIndex.Value, out var player);
         player.IsThisPlayerTurn = false;
         _currentTurnIndex = _turnIndexs.GoNext(_currentTurnIndex.Value);
-  
-        // _seatInfo.TryGetValue(_currentTurnIndex.Value, out var nextPlayer);
-        _sentTiles.TryPeek(out var lastTile);
+        _seatInfo.TryGetValue(_currentTurnIndex.Value, out var nextPlater);
+        nextPlater.IsThisPlayerTurn = true;
+        
+        player.SentTiles.TryPeek(out var lastTile);
         foreach (var otherPlayer in _players.Where(p=>p.GetPlayerId()!=player.GetPlayerId()))
         {
             otherPlayer.UpdateAvailableActions(lastTile);    
         }
         
-        BroadcastRoomInfo();
+        await BroadcastRoomInfo();
     }
 
     public List<int> GetPlayers()
