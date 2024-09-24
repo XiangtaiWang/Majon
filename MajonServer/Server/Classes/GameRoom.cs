@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Security.Cryptography.X509Certificates;
 using Newtonsoft.Json;
 using Server.Classes;
 
@@ -16,6 +17,7 @@ public class GameRoom : IGameRoom
     private short _initialTurnIndex = 1;
     private LinkedListNode<SeatDirection> _currentTurnIndex;
     private GameServer _server;
+    public ConcurrentQueue<ActionRequest> ActionRequestsQueue;
     
         
     private readonly List<TileType> _numberTiles = new List<TileType>
@@ -44,6 +46,7 @@ public class GameRoom : IGameRoom
         _roomId = roomId;
         _players = new List<Player>();
         _allTiles = new List<Tile>();
+        ActionRequestsQueue = new ConcurrentQueue<ActionRequest>();
         _server = gameServer;
         _roomInformation = new RoomInformation()
         {
@@ -199,8 +202,14 @@ public class GameRoom : IGameRoom
                     var tileType = (TileType) short.Parse(messageParts[1]);
                     var tileNumber = short.Parse(messageParts[2]);
                     var tile = new Tile(tileType, tileNumber);
-                    
-                    await PlayerSentTile(player, tile);
+                    var actionRequest = new ActionRequest
+                    {
+                        PlayerActionType = PlayerInRoomAction.SendTile,
+                        Player = player,
+                        Tile = tile,
+                    };
+                    ActionRequestsQueue.Enqueue(actionRequest);
+                    await ProcessActionRequest();
                     break;
                 case PlayerInRoomAction.AskToWin:
                     break;
@@ -226,14 +235,39 @@ public class GameRoom : IGameRoom
         return _roomId;
     }
 
-    private async Task PlayerSentTile(Player player, Tile tile)
+    private async Task ProcessActionRequest()
     {
+        ActionRequestsQueue.TryDequeue(out var rq);
+        var player = rq.Player;
+        var tile = rq.Tile;
+        // handle diff action
         if (player.HandTiles.Contains(tile))
         {
             player.HandTiles.Remove(tile);
             player.SentTiles.Push(tile);
             _sentTiles.Push(tile);
             await UpdatePlayersStatus(player);
+            // await WaitingAction();
+            //todo:  if no action from other, next need to fetch
+        }
+    }
+
+    private async Task WaitingAction()
+    {
+        using PeriodicTimer timer = new(TimeSpan.FromSeconds(1));
+        var lobbyInformation = new LobbyInformation();
+        while (await timer.WaitForNextTickAsync())
+        {
+            try
+            {
+                Console.WriteLine("Broadcasting room list " + DateTime.Now); ;
+                var info = JsonConvert.SerializeObject(lobbyInformation);
+                await BroadcastToRoomPlayers(info);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception in countdown timer: {ex.Message}");
+            }
         }
     }
 
@@ -258,4 +292,11 @@ public class GameRoom : IGameRoom
     {
         return _players.Select(p=>p.GetPlayerId()).ToList();
     }
+}
+
+public class ActionRequest
+{
+    public PlayerInRoomAction PlayerActionType;
+    public Player Player;
+    public Tile Tile;
 }
