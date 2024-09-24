@@ -2,8 +2,8 @@ namespace Server;
 
 public class Tile
 {
-    public TileType _tileType;
-    public short _tileNumber;
+    public TileType TileType;
+    public short TileNumber;
     private readonly List<TileType> _letterTiles =
     [
         TileType.RedCenter,
@@ -27,8 +27,8 @@ public class Tile
         {
             throw new Exception("incorrect create tile");
         }
-        _tileType = tileType;
-        _tileNumber = tileNumber;
+        TileType = tileType;
+        TileNumber = tileNumber;
     }
     public Tile(TileType tileType)
     {
@@ -37,8 +37,8 @@ public class Tile
             throw new Exception("incorrect create tile");
         }
 
-        _tileNumber = 0;
-        _tileType = tileType;
+        TileNumber = 0;
+        TileType = tileType;
     }
 }
 

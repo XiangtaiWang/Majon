@@ -57,7 +57,7 @@ public class GameRoom : IGameRoom
         foreach (var player in _players)
         {
             player.SetTiles(_allTiles[..16]);
-            player.HandTiles.Order();
+            player.HandTiles = player.HandTiles.OrderBy(t=>t.TileType).ThenBy(t=>t.TileNumber).ToList();
             _allTiles.RemoveRange(0, 16);
         }
     }
@@ -165,7 +165,13 @@ public class GameRoom : IGameRoom
     public async Task PlayerJoin(Player player)
     {
         _players.Add(player);
-        
+        var roomInformation = new RoomInformation
+        {
+            RoomId = _roomId,
+            Players = GetPlayers()
+        };
+        var msg = JsonConvert.SerializeObject(roomInformation);
+        await BroadcastToRoomPlayers(msg);
         if (_players.Count==4)
         {
             await StartGame();
@@ -193,7 +199,7 @@ public class GameRoom : IGameRoom
                     var tileType = (TileType) short.Parse(messageParts[1]);
                     var tileNumber = short.Parse(messageParts[2]);
                     var tile = player.HandTiles.First(tile =>
-                        tile._tileType == tileType && tile._tileNumber == tileNumber);
+                        tile.TileType == tileType && tile.TileNumber == tileNumber);
                     player.HandTiles.Remove(tile);
 
                     PlayerSentTile(tile);

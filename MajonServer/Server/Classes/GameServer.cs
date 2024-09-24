@@ -143,8 +143,7 @@ public class GameServer : IGameServer
         {
             case PlayerInLobbyAction.Create:
                 room = PlayerCreateRoom();
-                PlayerJoinRoom(player, room);
-                await NotifyPlayerJoinRoom(player);
+                await PlayerJoinRoom(player, room);
                 break;
             case PlayerInLobbyAction.Join:
                 var roomId = int.Parse(messageParts[1]);
@@ -152,8 +151,7 @@ public class GameServer : IGameServer
                 {
                     if (!room.IsGameRunning)
                     {
-                        PlayerJoinRoom(player, room);
-                        await NotifyPlayerJoinRoom(player);
+                        await PlayerJoinRoom(player, room);
                     }
                     else
                     {
@@ -168,18 +166,6 @@ public class GameServer : IGameServer
                 break;
         }
         
-    }
-
-    private static async Task NotifyPlayerJoinRoom(Player player)
-    {
-        var currentRoom = player.GetCurrentRoom();
-        var roomInformation = new RoomInformation
-        {
-            RoomId = currentRoom.GetRoomId(),
-            Players = currentRoom.GetPlayers()
-        };
-        var msg = JsonConvert.SerializeObject(roomInformation);
-        await WebSocketHelper.SendMessage(player.GetWebSocket(), msg);
     }
 
     private GameRoom PlayerCreateRoom()

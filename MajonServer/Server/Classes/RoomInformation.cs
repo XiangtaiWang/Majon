@@ -6,5 +6,7 @@ public class RoomInformation()
     public int RoomId;
     public List<int> Players;
     public List<Player> PlayersInfo;
-    // public string Message = message;
+    public List<Tile> SentTiles;
+    public Tile LastSentTile;
+
 }

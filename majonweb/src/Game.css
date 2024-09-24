@@ -1,0 +1,60 @@
+.game-container {
+    position: relative;
+    width: 1000px;
+    height: 1000px;
+    margin: 0 auto;
+    border: 2px solid #000;
+  }
+  
+  .top-player {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    justify-content: center;
+  }
+  
+  .left-player {
+    position: absolute;
+    left: -100px; /* Move the tiles outward to the left */
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 85%; /* Reduce height to 85% */
+  }
+  
+  .right-player {
+    position: absolute;
+    right: -100px; /* Move the tiles outward to the right */
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 85%; /* Reduce height to 85% */
+  }
+  
+  .bottom-player {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    justify-content: center;
+  }
+  
+  .center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 200px;
+    height: 200px;
+    background-color: #ddd;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }

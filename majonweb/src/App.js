@@ -1,0 +1,239 @@
+import React, { useState, useEffect, useRef } from 'react';
+import './Game.css';
+const App = () => {
+  const [messages, setMessages] = useState([]);
+  const [rooms, setRooms] = useState([]);
+  const [place, setPlace] = useState('Lobby');
+  const [myPlayerId, setMyPlayerId] = useState();
+  const [gameState, setGameState] = useState(null);
+  const ws = useRef(null);
+
+  useEffect(() => {
+    ws.current = new WebSocket('ws://localhost:7777/ws/');
+    ws.current.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.MessageType===1) {
+        setRooms(data.Rooms);
+        setPlace('Lobby')
+      }
+      else if(data.MessageType===2){
+        setRooms([]);
+        const place = "Room " + data.RoomId
+        setPlace(place)
+        setGameState(data)
+      }
+      else if(data.MessageType===3){
+        setMyPlayerId(data.PlayerId)
+      }
+      setMessages((prevMessages) => [...prevMessages, event.data]);
+    };
+
+    return () => {
+      if (ws.current) {
+        ws.current.close();
+      }
+    };
+  }, []);
+
+  const getImageFileName = (tile)=>{
+    let fileName=""
+    if(tile.TileType>3){
+      switch (tile.TileType) {
+        case 4:
+          fileName = "RedCenter"
+          break;
+        case 5:
+          fileName = "EarnMoney"
+          break;
+        case 6:
+          fileName = "WhiteBoard"
+          break;
+        case 7:
+          fileName = "EastWind"
+          break;
+        case 8:
+          fileName = "SouthWind"
+          break;
+        case 9:
+          fileName = "WestWind"
+          break;
+        case 10:
+          fileName = "NorthWind"
+          break;
+        default:
+          break;
+      }
+    }
+    else{
+        switch (tile.TileType) {
+          case 1:
+            fileName = `One${tile.TileNumber}`
+            break;
+          case 2:
+            fileName = `Tiao${tile.TileNumber}`
+            break;
+          case 3:
+            fileName = `Tong${tile.TileNumber}`
+            break;
+          default:
+            break;
+        }
+        // console.log(tile);
+        // console.log(fileName);
+        
+        
+    }
+    return fileName
+  }
+  const renderHandTiles = (handTiles) => {
+    return handTiles.map((tile, index) => (
+      <img
+        key={index}
+        src={`/images/${getImageFileName(tile)}.png`}
+        style={{ width: '50px', height: '75px', margin: '2px' }}
+      />
+    ));
+  };
+
+  const renderOtherPlayerHand = (player, position) => {
+    let hiddenTileImage;
+    
+    // Choose the appropriate hidden tile image based on the player's position
+    switch (position) {
+      case 'left':
+        hiddenTileImage = '/images/HiddenTileLeft.png';
+        break;
+      case 'top':
+        hiddenTileImage = '/images/HiddenTileOppisite.png';
+        break;
+      case 'right':
+        hiddenTileImage = '/images/HiddenTileRight.png';
+        break;
+      default:
+        hiddenTileImage = '/images/HiddenTileLeft.png'; // Default case if position is undefined
+    }
+  
+    return (
+      <div>
+        {/* <h4>Player {player.Seat}</h4> */}
+        <div className={`player-tiles ${position}`} style={{ display: 'flex', flexDirection: position === 'top' ? 'row' : 'column' }}>
+          {player.HandTiles.map((_, index) => (
+            <img
+              key={index}
+              src={hiddenTileImage}
+              alt={`Hidden tile for ${position}`}
+              style={{
+                width: position === 'top' ? '50px' : '75px', // Adjust size based on orientation
+                height: position === 'top' ? '75px' : '50px',
+                margin: '2px',
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  };
+  const renderLoading = () =>{
+    return <div>Loading...</div>;
+  }
+  const renderTable = () => {
+    const currentPlayer = gameState.PlayersInfo.find(player => player.PlayerId === myPlayerId);
+    const playerBySeat = {};
+    gameState.PlayersInfo.forEach((player) => {
+      playerBySeat[player.Seat] = player;
+    });
+  
+    const seatOrder = {
+      left: playerBySeat[(currentPlayer.Seat + 2) % 4 + 1] || null,
+      top: playerBySeat[(currentPlayer.Seat + 1) % 4 + 1] || null,
+      right: playerBySeat[(currentPlayer.Seat) % 4 + 1] || null,
+    };
+  
+    return (
+      <div className="game-container">
+        {/* Top player */}
+        <div className="top-player">
+          {seatOrder.top && renderOtherPlayerHand(seatOrder.top, 'top')}
+        </div>
+
+        {/* Left player */}
+        <div className="left-player">
+          {seatOrder.left && renderOtherPlayerHand(seatOrder.left, 'left')}
+        </div>
+
+        {/* Right player */}
+        <div className="right-player">
+          {seatOrder.right && renderOtherPlayerHand(seatOrder.right, 'right')}
+        </div>
+
+        {/* Center (played tiles area) */}
+        <div className="center">
+          <h3>Played Tiles</h3>
+        </div>
+
+        {/* Bottom (current player) */}
+        <div className="bottom-player">
+          {renderHandTiles(currentPlayer.HandTiles)}
+        </div>
+      </div>
+    );
+  };
+
+
+  const createRoom = () => {
+    if ( ws.current.readyState === WebSocket.OPEN) {
+      const msg = "1|";
+      ws.current.send(msg);
+      console.log(`Message sent: ${msg}`);
+    }
+  };
+  const joinRoom = (room) => {
+    const message = `2|${room}`; 
+    if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+      ws.current.send(message); // Send the message via WebSocket
+      console.log(`Message sent: ${message}`);
+    } else {
+      console.log('WebSocket is not open');
+    }
+  };
+
+  return (
+    <div style={{ padding: '20px' }}>
+      <div style={{ marginBottom: '10px' }}>
+        <h1>Your ID: {myPlayerId}; Place: {place}</h1>
+        <button onClick={createRoom}>Create Room</button>
+      </div>
+      <div>
+      <h1>Majon Game</h1>
+      {gameState?gameState.PlayersInfo?renderTable():renderLoading():renderLoading()}
+      </div>
+      <div style={{ padding: '20px' }}>
+      <h1>Room List</h1>
+      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+        {rooms.map((room, index) => (
+          <div
+            key={index}
+            onClick={() => joinRoom(room)}
+            onMouseEnter={(e) => (e.target.style.backgroundColor = '#45a049')}
+            onMouseLeave={(e) => (e.target.style.backgroundColor = '#4CAF50')}
+          >
+            Room {room}
+          </div>
+        ))}
+      </div>
+    </div>
+      <div>
+        <h2>Received Messages</h2>
+        <div style={{ border: '1px solid black', padding: '10px', height: '200px', overflowY: 'scroll' }}>
+          {messages.length > 0 ? (
+            messages.map((msg, index) => <p key={index}>{msg}</p>)
+          ) : (
+            <p>No messages received yet.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default App;
