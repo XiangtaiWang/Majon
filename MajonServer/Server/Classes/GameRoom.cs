@@ -10,7 +10,7 @@ public class GameRoom : IGameRoom
     private List<Tile> _allTiles;
     public int PlayerCount => _players.Count;
     private int _roomId;
-    public bool IsGameRunning = false;
+    public bool IsRoomFull =>PlayerCount>=4;
     private ConcurrentDictionary<SeatDirection, Player> _seatInfo = new();
     private short _initialTurnIndex = 1;
     private LinkedListNode<SeatDirection> _currentTurnIndex;
@@ -157,13 +157,18 @@ public class GameRoom : IGameRoom
             _seatInfo.TryAdd(direction, player);
         }
         
-        // throw new NotImplementedException();
     }
 
-    public void WinThisRound()
+    public async Task WinThisRound(Player player)
     {
-        //TODO
-
+        var roomAnnouncement = new RoomAnnouncement
+        {
+            RoomId = _roomId,
+            WinnerPlayerId =  player.GetPlayerId(),
+            PlayersInfo = _players
+        };
+        var msg = JsonConvert.SerializeObject(roomAnnouncement);
+        await BroadcastToRoomPlayers(msg);
     }
     
 
@@ -202,7 +207,6 @@ public class GameRoom : IGameRoom
     public async Task HandleRoomMessage(Player player, string[] messageParts)
     {
         var actionType = (PlayerInRoomAction)int.Parse(messageParts[0]);
-        //
         var actionRequest = new ActionRequest();
         switch (actionType)
             {
@@ -222,7 +226,6 @@ public class GameRoom : IGameRoom
                 case PlayerInRoomAction.AskToWin:
                     actionRequest.PlayerActionType = PlayerInRoomAction.AskToWin;
                     actionRequest.Player = player;
-                    //todo
                     break;
                 case PlayerInRoomAction.Eat:
                     actionRequest.PlayerActionType = PlayerInRoomAction.Eat;
@@ -254,7 +257,6 @@ public class GameRoom : IGameRoom
         {
             _initialTurnIndex = 1;
         }
-        //todo
     }
 
     public int GetRoomId()
@@ -264,7 +266,6 @@ public class GameRoom : IGameRoom
 
     private async Task ProcessActionRequest()
     {
-        //todo:?? win check, add to hand tile first or check first then add?
         while (!_actionRequestsQueue.IsEmpty)
         {
             _actionRequestsQueue.TryDequeue(out var rq);
@@ -283,7 +284,6 @@ public class GameRoom : IGameRoom
                         player.IsThisPlayerTurn = false;
                         player.HandTiles.Remove(tile);
                         player.SentTiles.Push(tile);
-                        // _sentTiles.Push(tile);
                         await UpdatePlayersStatus(player);
                         
                         var actionHistoryCountBeforeWaiting = _actionHistory.Count;
@@ -304,6 +304,7 @@ public class GameRoom : IGameRoom
                         }
                     }
                     break;
+                
                 case PlayerInRoomAction.FetchTile:
                     player.IsThisPlayerTurn = true;
                     _currentTurnIndex = _turnIndexs.Find(player.Seat);
@@ -315,13 +316,16 @@ public class GameRoom : IGameRoom
                     player.SortHandTiles();
                     
                     break;
+                
                 case PlayerInRoomAction.Eat:
                     player.IsThisPlayerTurn = true;
                     _currentTurnIndex = _turnIndexs.Find(player.Seat);
                     _actionHistory.TryPeek(out lastRq);
                     lastTile = lastRq.Player.SentTiles.Pop();
                     player.Eat(rq.Tiles[0], lastTile, rq.Tiles[1]);
+                    
                     break;
+                
                 case PlayerInRoomAction.Pong:
                     player.IsThisPlayerTurn = true;
                     _currentTurnIndex = _turnIndexs.Find(player.Seat);
@@ -330,6 +334,7 @@ public class GameRoom : IGameRoom
                     player.Pong(lastTile);
                     
                     break;
+                
                 case PlayerInRoomAction.Gang:
                     player.IsThisPlayerTurn = true;
                     _currentTurnIndex = _turnIndexs.Find(player.Seat);
@@ -346,16 +351,31 @@ public class GameRoom : IGameRoom
                     }
 
                     break;
+                
                 case PlayerInRoomAction.AskToWin:
-                    //todo
+                    _actionHistory.TryPeek(out lastRq);
+                    if (lastRq.PlayerActionType == PlayerInRoomAction.SendTile)
+                    {
+                        player.HandTiles = player.HandTiles.Append(lastRq.Player.SentTiles.Pop()).ToList();
+                    }
                     
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-            await BroadcastRoomInfo();
+
+            if (rq.PlayerActionType!= PlayerInRoomAction.AskToWin)
+            {
+                await BroadcastRoomInfo();    
+            }
+            else
+            {
+                await WinThisRound(player);
+            }
+            
             _actionHistory.Push(rq);
         }
+        
     }
 
     private void ClearAllPlayerAvailableAction()
@@ -421,17 +441,4 @@ public class GameRoom : IGameRoom
     {
         return _players.Select(p=>p.GetPlayerId()).ToList();
     }
-}
-
-internal class WaitingActionNotification
-{
-    public readonly MessageType MessageType = MessageType.WaitingAction;
-    public int LeftSeconds;
-}
-
-public class ActionRequest
-{
-    public PlayerInRoomAction PlayerActionType;
-    public Player Player;
-    public List<Tile> Tiles;
 }

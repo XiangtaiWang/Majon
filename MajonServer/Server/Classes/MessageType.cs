@@ -6,5 +6,6 @@ public enum MessageType
     Lobby = 1,
     Room = 2,
     PlayerInfo = 3,
-    WaitingAction = 4
+    WaitingAction = 4,
+    RoomAnnouncement = 5
 }

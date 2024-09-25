@@ -7,6 +7,7 @@ const App = () => {
   const [myPlayerId, setMyPlayerId] = useState();
   const [gameState, setGameState] = useState(null);
   const [timer, setTimer] = useState(null);
+  const [winnerPlayerId, setWinnerPlayerId] = useState(null); 
   const ws = useRef(null);
 
   useEffect(() => {
@@ -29,6 +30,10 @@ const App = () => {
       }
       else if (data.MessageType === 4) {
         setTimer(data.LeftSeconds);
+      }
+      else if (data.MessageType === 5) {
+        // 新增 WinnerPlayerId 的處理邏輯
+        setWinnerPlayerId(data.WinnerPlayerId);
       }
       setMessages((prevMessages) => [...prevMessages, event.data]);
     };
@@ -175,30 +180,31 @@ const App = () => {
   
     return (
       <div>
-        {/* <h4>Player {player.Seat}</h4> */}
-              {/* Show the player's EatOrPongTiles */}
-      <div className={`player-eat-pong-tiles ${position}`} style={{ display: 'flex', flexDirection: position === 'top' ? 'row' : 'column' }}>
-        {player.EatOrPongTiles && player.EatOrPongTiles.map((tile, index) => (
-          <img
-            key={index}
-            src={`/images/${getImageFileName(tile)}.png`}
-            alt={`EatOrPongTile ${tile.TileType}-${tile.TileNumber}`}
-            style={{
-              width: '40px', // Smaller size for EatOrPongTiles
-              height: '60px',
-              margin: '2px',
-            }}
-          />
-        ))}
-      </div>
-        <div className={`player-tiles ${position}`} style={{ display: 'flex', flexDirection: position === 'top' ? 'row' : 'column' }}>
-          {player.HandTiles.map((_, index) => (
+        {/* Show the player's EatOrPongTiles */}
+        <div className={`player-eat-pong-tiles ${position}`} style={{ display: 'flex', flexDirection: position === 'top' ? 'row' : 'column' }}>
+          {player.EatOrPongTiles && player.EatOrPongTiles.map((tile, index) => (
             <img
               key={index}
-              src={hiddenTileImage}
-              alt={`Hidden tile for ${position}`}
+              src={`/images/${getImageFileName(tile)}.png`}
+              alt={`EatOrPongTile ${tile.TileType}-${tile.TileNumber}`}
               style={{
-                width: position === 'top' ? '50px' : '75px', // Adjust size based on orientation
+                width: '40px',
+                height: '60px',
+                margin: '2px',
+              }}
+            />
+          ))}
+        </div>
+  
+        {/* Conditionally show the player's hand tiles (revealed if there's a winner) */}
+        <div className={`player-tiles ${position}`} style={{ display: 'flex', flexDirection: position === 'top' ? 'row' : 'column' }}>
+          {player.HandTiles.map((tile, index) => (
+            <img
+              key={index}
+              src={winnerPlayerId ? `/images/${getImageFileName(tile)}.png` : hiddenTileImage}  // Show actual tiles if there's a winner
+              alt={`Tile ${tile.TileType}-${tile.TileNumber}`}
+              style={{
+                width: position === 'top' ? '50px' : '75px',
                 height: position === 'top' ? '75px' : '50px',
                 margin: '2px',
               }}
@@ -252,6 +258,12 @@ const App = () => {
         </div>
 
         <div className="center">
+          {winnerPlayerId && (
+            <div className="winner-display">
+              <h2>Player {winnerPlayerId} Wins!!</h2>
+            </div>
+          )}
+
           <div className="sent-tiles-container">
 
             <div className="sent-tiles top">{renderSentTiles(seatOrder.top.SentTiles || [])}</div>

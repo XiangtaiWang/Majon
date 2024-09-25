@@ -32,7 +32,7 @@ public class PlayerTests
     }
     
     [Fact]
-    public void TestEatCheck()
+    public void TestEatCheckAtRight()
     {
         var tiles = new List<Tile>()
         {
@@ -44,7 +44,7 @@ public class PlayerTests
         Assert.Contains(PlayerAvailableActionInGame.Eat, _player.AvailableActions);
     }
     [Fact]
-    public void TestEatCheck_Middle()
+    public void TestEatCheckInMiddle()
     {
         var tiles = new List<Tile>()
         {
@@ -53,6 +53,18 @@ public class PlayerTests
         };
         _player.SetHandTiles(tiles);
         _player.EatCheck(new Tile(TileType.One, 2));
+        Assert.Contains(PlayerAvailableActionInGame.Eat, _player.AvailableActions);
+    }
+    [Fact]
+    public void TestEatCheckInLeft()
+    {
+        var tiles = new List<Tile>()
+        {
+            new Tile(TileType.One, 2),
+            new Tile(TileType.One, 3)
+        };
+        _player.SetHandTiles(tiles);
+        _player.EatCheck(new Tile(TileType.One, 1));
         Assert.Contains(PlayerAvailableActionInGame.Eat, _player.AvailableActions);
     }
     

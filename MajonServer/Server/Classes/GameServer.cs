@@ -149,7 +149,7 @@ public class GameServer : IGameServer
                 var roomId = int.Parse(messageParts[1]);
                 if (RoomsList.TryGetValue(roomId, out room))
                 {
-                    if (!room.IsGameRunning)
+                    if (!room.IsRoomFull)
                     {
                         await PlayerJoinRoom(player, room);
                     }
@@ -157,7 +157,6 @@ public class GameServer : IGameServer
                     {
                         Console.WriteLine($"Room{room} already started.");    
                     }
-                    
                 }
                 else
                 {

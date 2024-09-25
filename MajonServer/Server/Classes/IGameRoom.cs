@@ -4,7 +4,7 @@ public interface IGameRoom
 {
     public Task StartGame();
 
-    public void WinThisRound();
+    public Task WinThisRound(Player player);
 
     public void GameFinish();
     public Task PlayerJoin(Player player);

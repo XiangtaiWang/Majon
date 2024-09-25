@@ -10,3 +10,10 @@ public class RoomInformation()
     public Tile LastSentTile;
 
 }
+public class RoomAnnouncement()
+{
+    public readonly MessageType MessageType = MessageType.RoomAnnouncement;
+    public int RoomId;
+    public int WinnerPlayerId;
+    public List<Player> PlayersInfo;
+}
