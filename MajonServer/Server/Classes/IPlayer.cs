@@ -12,7 +12,7 @@ public interface IPlayer
     public void SendTile(Tile tile);
     public void FetchTile();
     public void Eat();
-    public void Pong();
+    public void Pong(Tile tile);
     // public IGameRoom AskCreateRoom();
     Task Display(string information);
     public GameRoom GetCurrentRoom();

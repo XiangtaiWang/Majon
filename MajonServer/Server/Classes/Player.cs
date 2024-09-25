@@ -22,6 +22,7 @@ public class Player : IPlayer
         _connection = connection;
         SentTiles = new Stack<Tile>();
         AvailableActions = new List<PlayerAvailableActionInGame>();
+        EatOrPongTiles = new List<Tile>();
     }
 
     public int GetPlayerId()
@@ -59,9 +60,16 @@ public class Player : IPlayer
         throw new NotImplementedException();
     }
 
-    public void Pong()
+    public void Pong(Tile lastTile)
     {
-        throw new NotImplementedException();
+        HandTiles.Remove(lastTile);
+        HandTiles.Remove(lastTile);
+        EatOrPongTiles.AddRange(new List<Tile>()
+        {
+            lastTile,
+            lastTile,
+            lastTile
+        });
     }
 
     public async Task Display(string information)

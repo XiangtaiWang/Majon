@@ -108,27 +108,46 @@ const App = () => {
       </div>
     );
   };
-  const renderHandTiles = (handTiles, isPlayerTurn) => {
-    return handTiles.map((tile, index) => (
-      <img
-        key={index}
-        src={`/images/${getImageFileName(tile)}.png`}
-        style={{
-          width: '50px',
-          height: '75px',
-          margin: '2px',
-          cursor: isPlayerTurn ? 'pointer' : 'default', // 如果是玩家的回合，顯示為可點擊的
-          opacity: isPlayerTurn ? 1 : 0.6 // 如果不是玩家的回合，稍微降低不透明度
-        }}
-        onClick={() => {
-          if (isPlayerTurn) {
-            const message = `1|${tile.TileType}|${tile.TileNumber}`;
-            sendMessage(message)
-          }
-        }}
-        alt={`Tile ${tile.TileType}-${tile.TileNumber}`}
-      />
-    ));
+  const renderHandTiles = (player) => {
+    return (
+      <div>
+        {/* Show EatOrPongTiles for the current player */}
+        <div className="player-eat-pong-tiles" style={{ display: 'flex', marginBottom: '5px' }}>
+          {player.EatOrPongTiles && player.EatOrPongTiles.map((tile, index) => (
+            <img
+              key={index}
+              src={`/images/${getImageFileName(tile)}.png`}
+              alt={`EatOrPongTile ${tile.TileType}-${tile.TileNumber}`}
+              style={{ width: '40px', height: '60px', margin: '2px' }}
+            />
+          ))}
+        </div>
+        
+        {/* Player's hand tiles */}
+        <div style={{ display: 'flex' }}>
+          {player.HandTiles.map((tile, index) => (
+            <img
+              key={index}
+              src={`/images/${getImageFileName(tile)}.png`}
+              style={{
+                width: '50px',
+                height: '75px',
+                margin: '2px',
+                cursor: player.IsThisPlayerTurn ? 'pointer' : 'default',
+                opacity: player.IsThisPlayerTurn ? 1 : 0.6,
+              }}
+              onClick={() => {
+                if (player.IsThisPlayerTurn) {
+                  const message = `1|${tile.TileType}|${tile.TileNumber}`;
+                  sendMessage(message);
+                }
+              }}
+              alt={`Tile ${tile.TileType}-${tile.TileNumber}`}
+            />
+          ))}
+        </div>
+      </div>
+    );
   };
 
   const renderOtherPlayerHand = (player, position) => {
@@ -152,6 +171,21 @@ const App = () => {
     return (
       <div>
         {/* <h4>Player {player.Seat}</h4> */}
+              {/* Show the player's EatOrPongTiles */}
+      <div className={`player-eat-pong-tiles ${position}`} style={{ display: 'flex', flexDirection: position === 'top' ? 'row' : 'column' }}>
+        {player.EatOrPongTiles && player.EatOrPongTiles.map((tile, index) => (
+          <img
+            key={index}
+            src={`/images/${getImageFileName(tile)}.png`}
+            alt={`EatOrPongTile ${tile.TileType}-${tile.TileNumber}`}
+            style={{
+              width: '40px', // Smaller size for EatOrPongTiles
+              height: '60px',
+              margin: '2px',
+            }}
+          />
+        ))}
+      </div>
         <div className={`player-tiles ${position}`} style={{ display: 'flex', flexDirection: position === 'top' ? 'row' : 'column' }}>
           {player.HandTiles.map((_, index) => (
             <img
@@ -230,7 +264,8 @@ const App = () => {
 
         {/* Bottom (current player) */}
         <div className="bottom-player">
-        {renderHandTiles(currentPlayer.HandTiles, currentPlayer.IsThisPlayerTurn)}
+        {/* {renderHandTiles(currentPlayer.HandTiles, currentPlayer.IsThisPlayerTurn)} */}
+        {renderHandTiles(currentPlayer)}
         {renderAvailableActions(currentPlayer.AvailableActions)}
         </div>
       </div>
