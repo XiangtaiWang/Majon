@@ -128,4 +128,9 @@ public class Player : IPlayer
     {
         AvailableActions.Clear();
     }
+
+    public void SortHandTiles()
+    {
+        HandTiles = HandTiles.OrderBy(t => t.TileType).ThenBy(t => t.TileNumber).ToList();
+    }
 }

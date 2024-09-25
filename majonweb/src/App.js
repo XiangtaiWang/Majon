@@ -100,10 +100,10 @@ const App = () => {
       <div>
         {availableActions.includes(1) && (
           // todo: send ??
-          <button onClick={() => sendMessage('eat')}>Eat</button>
+          <button onClick={() => sendMessage('4|')}>Eat</button>
         )}
         {availableActions.includes(2) && (
-          <button onClick={() => sendMessage('pong')}>Pong</button>
+          <button onClick={() => sendMessage('5|')}>Pong</button>
         )}
       </div>
     );
