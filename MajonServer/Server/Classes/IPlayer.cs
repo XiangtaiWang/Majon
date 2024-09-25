@@ -7,7 +7,7 @@ public interface IPlayer
 {
     public int GetPlayerId();
     public void Win();
-    public void SetTiles(List<Tile> tiles);
+    public void SetHandTiles(List<Tile> tiles);
     public List<Tile> GetTilesInHand();
     public void SendTile(Tile tile);
     public void FetchTile();
@@ -18,5 +18,5 @@ public interface IPlayer
     public GameRoom GetCurrentRoom();
     void SetRoom(GameRoom gameRoom);
     public WebSocket GetWebSocket();
-    public void UpdateAvailableActions(Tile tile);
+    public void PongCheck(Tile tile);
 }

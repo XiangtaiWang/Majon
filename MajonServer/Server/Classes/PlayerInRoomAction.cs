@@ -6,5 +6,7 @@ public enum PlayerInRoomAction
     SendTile = 1,
     FetchTile = 2,
     AskToWin = 3,
-    LeaveRoom = 3
+    Eat = 4,
+    Pong = 5
+    // LeaveRoom = 3
 }

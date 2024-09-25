@@ -6,6 +6,7 @@ const App = () => {
   const [place, setPlace] = useState('Lobby');
   const [myPlayerId, setMyPlayerId] = useState();
   const [gameState, setGameState] = useState(null);
+  const [timer, setTimer] = useState(null);
   const ws = useRef(null);
 
   useEffect(() => {
@@ -21,9 +22,13 @@ const App = () => {
         const place = "Room " + data.RoomId
         setPlace(place)
         setGameState(data)
+        setTimer(null);
       }
       else if(data.MessageType===3){
         setMyPlayerId(data.PlayerId)
+      }
+      else if (data.MessageType === 4) {
+        setTimer(data.LeftSeconds);
       }
       setMessages((prevMessages) => [...prevMessages, event.data]);
     };
@@ -90,6 +95,19 @@ const App = () => {
     }
     return fileName
   }
+  const renderAvailableActions = (availableActions) => {
+    return (
+      <div>
+        {availableActions.includes(1) && (
+          // todo: send ??
+          <button onClick={() => sendMessage('eat')}>Eat</button>
+        )}
+        {availableActions.includes(2) && (
+          <button onClick={() => sendMessage('pong')}>Pong</button>
+        )}
+      </div>
+    );
+  };
   const renderHandTiles = (handTiles, isPlayerTurn) => {
     return handTiles.map((tile, index) => (
       <img
@@ -203,11 +221,17 @@ const App = () => {
             <div className="sent-tiles right">{renderSentTiles(seatOrder.right.SentTiles || [])}</div>
             <div className="sent-tiles bottom">{renderSentTiles(currentPlayer.SentTiles)}</div>
           </div>
+          {timer !== null && (
+            <div className="timer">
+              <p>Time Left: {timer} seconds</p>
+            </div>
+          )}
         </div>
 
         {/* Bottom (current player) */}
         <div className="bottom-player">
         {renderHandTiles(currentPlayer.HandTiles, currentPlayer.IsThisPlayerTurn)}
+        {renderAvailableActions(currentPlayer.AvailableActions)}
         </div>
       </div>
     );

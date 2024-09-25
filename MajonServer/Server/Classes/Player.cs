@@ -21,6 +21,7 @@ public class Player : IPlayer
         _playerId = playerId;
         _connection = connection;
         SentTiles = new Stack<Tile>();
+        AvailableActions = new List<PlayerAvailableActionInGame>();
     }
 
     public int GetPlayerId()
@@ -33,7 +34,7 @@ public class Player : IPlayer
         throw new NotImplementedException();
     }
 
-    public void SetTiles(List<Tile> tiles)
+    public void SetHandTiles(List<Tile> tiles)
     {
         HandTiles = tiles;
     }
@@ -91,9 +92,40 @@ public class Player : IPlayer
         return _connection;
     }
 
-    public void UpdateAvailableActions(Tile tile)
+    public void PongCheck(Tile tile)
     {
-        //todo
-        // throw new NotImplementedException();
+        var count = HandTiles.FindAll(t => t.Equals(tile)).Count;
+        // var count = HandTiles.Where(t => t == tile).Count();
+        if (count >= 2)
+        {
+            AvailableActions.Add(PlayerAvailableActionInGame.Pong);
+        }
+    }
+
+    public void EatCheck(Tile tile)
+    {
+        if (tile.CanOnlyPongTileType.Contains(tile.TileType))
+        {
+            return;
+        }
+
+        var tileMinos1 = new Tile(tileType: tile.TileType, tileNumber: tile.TileNumber-1);
+        var tileMinos2 = new Tile(tileType: tile.TileType, tileNumber: tile.TileNumber-2);
+        var tilePlus1 = new Tile(tileType: tile.TileType, tileNumber: tile.TileNumber+1);
+        var tilePlus2 = new Tile(tileType: tile.TileType, tileNumber: tile.TileNumber+2);
+        
+        var handTiles = HandTiles.Distinct().ToList();
+        
+        if ((handTiles.Contains(tileMinos2) && handTiles.Contains(tileMinos1)) ||
+            (handTiles.Contains(tileMinos1) && handTiles.Contains(tilePlus1)) ||
+            (handTiles.Contains(tilePlus1) && handTiles.Contains(tilePlus2)))
+        {
+            AvailableActions.Add(PlayerAvailableActionInGame.Eat);
+        }
+    }
+
+    public void ClearAvailibleAction()
+    {
+        AvailableActions.Clear();
     }
 }

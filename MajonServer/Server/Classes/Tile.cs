@@ -1,10 +1,10 @@
 namespace Server;
 
-public class Tile : IEquatable<Tile>
+public class Tile 
 {
     public TileType TileType;
-    public short TileNumber;
-    private readonly List<TileType> _letterTiles =
+    public int TileNumber;
+    public readonly List<TileType> CanOnlyPongTileType =
     [
         TileType.RedCenter,
         TileType.EarnMoney,
@@ -14,14 +14,14 @@ public class Tile : IEquatable<Tile>
         TileType.WestWind,
         TileType.NorthWind
     ];
-    private readonly List<TileType> _tileNeedNumber =
+    public readonly List<TileType> NeedNumberTileType =
     [
         TileType.One,
         TileType.Tiao,
         TileType.Tong
     ];
 
-    public Tile(TileType tileType, short tileNumber)
+    public Tile(TileType tileType, int tileNumber)
     {
         // if (!_tileNeedNumber.Contains(tileType))
         // {
@@ -30,20 +30,20 @@ public class Tile : IEquatable<Tile>
         TileType = tileType;
         TileNumber = tileNumber;
     }
-    // public Tile(TileType tileType)
-    // {
-    //     if (!_letterTiles.Contains(tileType))
-    //     {
-    //         throw new Exception("incorrect create tile");
-    //     }
-    //
-    //     TileNumber = 0;
-    //     TileType = tileType;
-    // }
-
-    public bool Equals(Tile other)
+    
+    public override bool Equals(object? obj)
     {
+        if (obj == null || GetType() != obj.GetType())
+        {
+            return false;
+        }
+        var other = (Tile)obj;
         return TileType == other.TileType && TileNumber == other.TileNumber;
+        
+    }
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(TileType, TileNumber);
     }
 }
 

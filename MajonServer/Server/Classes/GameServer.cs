@@ -32,7 +32,7 @@ public class GameServer : IGameServer
         {
             try
             {
-                Console.WriteLine("Broadcasting room list " + DateTime.Now);
+                // Console.WriteLine("Broadcasting room list " + DateTime.Now);
                 var players = Players.Values.Where(p => p.GetCurrentRoom() == null).ToList();
                 lobbyInformation.Rooms = RoomsList.Keys.ToList();
                 var info = JsonConvert.SerializeObject(lobbyInformation);
@@ -101,7 +101,7 @@ public class GameServer : IGameServer
         else
         {
             Console.WriteLine("handle room message");
-            playerCurrentRoom.HandleRoomMessage(player, messageParts);
+            await playerCurrentRoom.HandleRoomMessage(player, messageParts);
         }
         
     }
