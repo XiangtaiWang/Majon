@@ -1,9 +1,12 @@
+using Newtonsoft.Json;
+
 namespace Server;
 
 public class Tile 
 {
     public TileType TileType;
     public int TileNumber;
+    [JsonIgnore]
     public readonly List<TileType> CanOnlyPongTileType =
     [
         TileType.RedCenter,
@@ -14,6 +17,7 @@ public class Tile
         TileType.WestWind,
         TileType.NorthWind
     ];
+    [JsonIgnore]
     public readonly List<TileType> NeedNumberTileType =
     [
         TileType.One,

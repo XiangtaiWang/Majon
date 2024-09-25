@@ -2,7 +2,6 @@ namespace Server.Classes;
 
 public class TurnIndex
 {
-    // todo: make circle
     public readonly LinkedList<SeatDirection> Indexs;
 
     public TurnIndex()

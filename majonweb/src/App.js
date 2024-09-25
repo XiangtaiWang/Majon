@@ -98,12 +98,17 @@ const App = () => {
   const renderAvailableActions = (availableActions) => {
     return (
       <div>
-        {availableActions.includes(1) && (
-          // todo: send ??
-          <button onClick={() => sendMessage('4|')}>Eat</button>
-        )}
+        {/* {availableActions.includes(1) && (
+          <button onClick={() => sendMessage('4|')}>吃Eat</button>
+        )} */}
         {availableActions.includes(2) && (
-          <button onClick={() => sendMessage('5|')}>Pong</button>
+          <button onClick={() => sendMessage('5|')}>碰Pong</button>
+        )}
+        {availableActions.includes(3) && (
+          <button onClick={() => sendMessage('6|')}>槓Gang</button>
+        )}
+        {availableActions.includes(4) && (
+          <button onClick={() => sendMessage('3|')}>胡WIN!</button>
         )}
       </div>
     );
@@ -246,10 +251,9 @@ const App = () => {
           {seatOrder.right && renderOtherPlayerHand(seatOrder.right, 'right')}
         </div>
 
-        {/* Center (played tiles area) */}
         <div className="center">
           <div className="sent-tiles-container">
-            {/* Render each player's sent tiles */}
+
             <div className="sent-tiles top">{renderSentTiles(seatOrder.top.SentTiles || [])}</div>
             <div className="sent-tiles left">{renderSentTiles(seatOrder.left.SentTiles || [])}</div>
             <div className="sent-tiles right">{renderSentTiles(seatOrder.right.SentTiles || [])}</div>
@@ -262,16 +266,46 @@ const App = () => {
           )}
         </div>
 
-        {/* Bottom (current player) */}
         <div className="bottom-player">
-        {/* {renderHandTiles(currentPlayer.HandTiles, currentPlayer.IsThisPlayerTurn)} */}
         {renderHandTiles(currentPlayer)}
         {renderAvailableActions(currentPlayer.AvailableActions)}
+        {currentPlayer.EatOptions && currentPlayer.EatOptions.length > 0 && renderEatOptions(currentPlayer.EatOptions)}
         </div>
       </div>
     );
   };
-
+  const renderEatOptions = (eatOptions) => {
+    if (!eatOptions || eatOptions.length === 0) return null;
+  
+    return (
+      <div className="eat-options-container">
+        <h4>Choose an Eat Option</h4>
+        <div className="eat-options">
+          {eatOptions.map((option, index) => (
+            <div key={index} className="eat-option" style={{ display: 'flex', cursor: 'pointer' }}>
+              {option.map((tile, tileIndex) => (
+                <img
+                  key={tileIndex}
+                  src={`/images/${getImageFileName(tile)}.png`}
+                  alt={`EatOption Tile ${tile.TileType}-${tile.TileNumber}`}
+                  style={{ width: '50px', height: '75px', margin: '2px' }}
+                  onClick={() => handleEatOptionClick(option)}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+  const handleEatOptionClick = (option) => {
+    if (option.length === 2) {
+      const [tile1, tile2] = option;
+      const message = `4|${tile1.TileType}|${tile1.TileNumber}|${tile2.TileType}|${tile2.TileNumber}`;
+      sendMessage(message);
+      console.log(`Eat option selected: ${message}`);
+    }
+  };
 
   const createRoom = () => {
     if ( ws.current.readyState === WebSocket.OPEN) {
@@ -294,7 +328,7 @@ const App = () => {
     <div style={{ padding: '20px' }}>
       <div style={{ marginBottom: '10px' }}>
         <h1>Your ID: {myPlayerId}; Place: {place}</h1>
-        <button onClick={createRoom}>Create Room</button>
+        {place=="Lobby"?<button onClick={createRoom}>Create Room</button>:<h1></h1>}
       </div>
       <div>
       <h1>Majon Game</h1>

@@ -6,5 +6,7 @@
     &lt;TestId&gt;xUnit::87F7F8D1-B18D-434F-8ADD-636E4ABD9C4A::net8.0::ServerTests.PlayerTests.TestEatCheck&lt;/TestId&gt;
     &lt;TestId&gt;xUnit::87F7F8D1-B18D-434F-8ADD-636E4ABD9C4A::net8.0::ServerTests.PlayerTests.TestPongCheck&lt;/TestId&gt;
     &lt;TestId&gt;xUnit::87F7F8D1-B18D-434F-8ADD-636E4ABD9C4A::net8.0::ServerTests.PlayerTests.TestEatCheck_Middle&lt;/TestId&gt;
+    &lt;TestId&gt;xUnit::87F7F8D1-B18D-434F-8ADD-636E4ABD9C4A::net8.0::ServerTests.PlayerTests.TestWinCheck&lt;/TestId&gt;
+    &lt;TestId&gt;xUnit::87F7F8D1-B18D-434F-8ADD-636E4ABD9C4A::net8.0::ServerTests.PlayerTests.TestWinCheckFailedCases&lt;/TestId&gt;
   &lt;/TestAncestor&gt;
 &lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>

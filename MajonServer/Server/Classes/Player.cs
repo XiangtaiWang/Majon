@@ -1,5 +1,4 @@
 using System.Net.WebSockets;
-using System.Text;
 
 namespace Server;
 
@@ -11,6 +10,7 @@ public class Player : IPlayer
     public List<Tile> HandTiles;
     public Stack<Tile> SentTiles;
     public List<Tile> EatOrPongTiles;
+    public List<List<Tile>> EatOptions;
     public List<PlayerAvailableActionInGame> AvailableActions;
     public bool IsThisPlayerTurn = false;
     private WebSocket _connection;
@@ -23,6 +23,7 @@ public class Player : IPlayer
         SentTiles = new Stack<Tile>();
         AvailableActions = new List<PlayerAvailableActionInGame>();
         EatOrPongTiles = new List<Tile>();
+        EatOptions = new List<List<Tile>>();
     }
 
     public int GetPlayerId()
@@ -55,11 +56,6 @@ public class Player : IPlayer
         throw new NotImplementedException();
     }
 
-    public void Eat()
-    {
-        throw new NotImplementedException();
-    }
-
     public void Pong(Tile lastTile)
     {
         HandTiles.Remove(lastTile);
@@ -70,19 +66,6 @@ public class Player : IPlayer
             lastTile,
             lastTile
         });
-    }
-
-    public async Task Display(string information)
-    {
-        //todo: need add other info on the board
-        // var message = GetTilesInHand().ToString();
-        var data = "hellow world";
-        var message = Encoding.ASCII.GetBytes(data);  
-
-
-        await _connection.SendAsync(new ArraySegment<byte>(message), WebSocketMessageType.Text, true, CancellationToken.None);
-
-        // await _webSocket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(information)), WebSocketMessageType.Text, true, CancellationToken.None);
     }
 
     public GameRoom GetCurrentRoom()
@@ -124,9 +107,20 @@ public class Player : IPlayer
         
         var handTiles = HandTiles.Distinct().ToList();
         
-        if ((handTiles.Contains(tileMinos2) && handTiles.Contains(tileMinos1)) ||
-            (handTiles.Contains(tileMinos1) && handTiles.Contains(tilePlus1)) ||
-            (handTiles.Contains(tilePlus1) && handTiles.Contains(tilePlus2)))
+        if (handTiles.Contains(tileMinos2) && handTiles.Contains(tileMinos1))
+        {
+            EatOptions.Add([tileMinos2, tileMinos1]);
+        }
+        if ((handTiles.Contains(tileMinos1) && handTiles.Contains(tilePlus1)))
+        {
+            EatOptions.Add([tileMinos1, tilePlus1]);
+        }
+        if(handTiles.Contains(tilePlus1) && handTiles.Contains(tilePlus2))
+        {
+            EatOptions.Add([tilePlus1, tilePlus2]);
+        }
+
+        if (EatOptions.Count != 0)
         {
             AvailableActions.Add(PlayerAvailableActionInGame.Eat);
         }
@@ -135,10 +129,118 @@ public class Player : IPlayer
     public void ClearAvailibleAction()
     {
         AvailableActions.Clear();
+        EatOptions.Clear();
     }
 
     public void SortHandTiles()
     {
         HandTiles = HandTiles.OrderBy(t => t.TileType).ThenBy(t => t.TileNumber).ToList();
+    }
+
+    public void WinCheck(Tile newTile)
+    {
+        HandTiles.Add(newTile);
+        if (HandTiles.Count % 3 != 2)
+            return;
+        for (int i = 0; i < HandTiles.Count; i++)
+        {
+            Tile pairTile = HandTiles[i];
+            List<Tile> remainingTiles = new List<Tile>(HandTiles);
+            
+            if (remainingTiles.Count(t => t.Equals(pairTile)) >= 2)
+            {
+                // 移除該對子
+                remainingTiles.Remove(pairTile);
+                remainingTiles.Remove(pairTile);
+                
+                if (CanFormMelds(remainingTiles))
+                {
+                    AvailableActions.Add(PlayerAvailableActionInGame.Win);
+                }
+            }
+        }
+
+        HandTiles.Remove(newTile);
+    }
+    private bool CanFormMelds(List<Tile> tiles)
+    {
+        if (tiles.Count == 0)
+            return true; // 全部拆完，表示可以胡牌
+
+        Tile firstTile = tiles[0];
+        List<Tile> remainingTiles = new List<Tile>(tiles);
+
+        // 嘗試組成刻子（3張相同的牌）
+        if (remainingTiles.Count(t => t.Equals(firstTile)) >= 3)
+        {
+            remainingTiles.Remove(firstTile);
+            remainingTiles.Remove(firstTile);
+            remainingTiles.Remove(firstTile);
+            if (CanFormMelds(remainingTiles))
+            {
+                return true;
+            }
+        }
+
+        // 嘗試組成順子（僅適用於數字牌：萬、條、筒）
+        if (firstTile.TileType == TileType.One || firstTile.TileType == TileType.Tiao || firstTile.TileType == TileType.Tong)
+        {
+            Tile secondTile = new Tile(firstTile.TileType, firstTile.TileNumber + 1);
+            Tile thirdTile = new Tile(firstTile.TileType, firstTile.TileNumber + 2);
+
+            if (remainingTiles.Exists(t => t.Equals(secondTile)) && remainingTiles.Exists(t => t.Equals(thirdTile)))
+            {
+                remainingTiles.Remove(firstTile);
+                remainingTiles.Remove(secondTile);
+                remainingTiles.Remove(thirdTile);
+                if (CanFormMelds(remainingTiles))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false; // 無法組成順子或刻子，返回 false
+    }
+
+    public void Gang(Tile lastTile)
+    {
+        if (AlreadyPong(lastTile))
+        {
+            EatOrPongTiles.Insert(EatOrPongTiles.IndexOf(lastTile), lastTile);
+        }
+        else
+        {
+            HandTiles.Remove(lastTile);
+            HandTiles.Remove(lastTile);
+            HandTiles.Remove(lastTile);
+            EatOrPongTiles.AddRange(new List<Tile>()
+            {
+                lastTile,
+                lastTile,
+                lastTile,
+                lastTile
+            });
+        }
+    }
+
+    private bool AlreadyPong(Tile lastTile)
+    {
+        return EatOrPongTiles.Count(t => t.Equals(lastTile))==3;
+    }
+
+    public void GangChecAfterFetchTile(Tile newTile)
+    {
+        if (HandTiles.Count(t => t.Equals(newTile))==3 || SentTiles.Count(t => t.Equals(newTile))==3)
+        {
+            AvailableActions.Add(PlayerAvailableActionInGame.Gang);
+        }
+    }
+
+    public void Eat(Tile myHandTile1, Tile eatenTile, Tile myHandTile2)
+    {
+        HandTiles.Remove(myHandTile1);
+        HandTiles.Remove(myHandTile2);
+        EatOrPongTiles.AddRange([myHandTile1, eatenTile, myHandTile2]);
     }
 }

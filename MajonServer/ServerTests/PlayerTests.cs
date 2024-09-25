@@ -1,6 +1,5 @@
 using System.Net.WebSockets;
 using Server;
-using Server.Classes;
 using Xunit.Abstractions;
 
 namespace ServerTests;
@@ -55,5 +54,27 @@ public class PlayerTests
         _player.SetHandTiles(tiles);
         _player.EatCheck(new Tile(TileType.One, 2));
         Assert.Contains(PlayerAvailableActionInGame.Eat, _player.AvailableActions);
+    }
+    
+    [Theory]
+    [ClassData(typeof(SuccessfulWinCheckTestDataGenerator))]
+    public void TestWinCheck(List<Tile> handTiles)
+    {
+        _player.SetHandTiles(handTiles);
+        _player.WinCheck(new Tile(TileType.One, 2));
+        
+        Assert.Contains(PlayerAvailableActionInGame.Win, _player.AvailableActions);
+        Assert.Equal(handTiles.Count, _player.HandTiles.Count);
+    }
+    
+    [Theory]
+    [ClassData(typeof(FailedWinCheckTestDataGenerator))]
+    public void TestWinCheckFailedCases(List<Tile> handTiles)
+    {
+        _player.SetHandTiles(handTiles);
+        _player.WinCheck(new Tile(TileType.One, 2));
+        
+        Assert.DoesNotContain(PlayerAvailableActionInGame.Win, _player.AvailableActions);
+        Assert.Equal(handTiles.Count, _player.HandTiles.Count);
     }
 }
